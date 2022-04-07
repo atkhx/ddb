@@ -65,8 +65,8 @@ func getAccountId(user string) string {
 
 func getAccount(db Storage, tx int64, user string) (account, error) {
 	accountId := getAccountId(user)
-	accountRow, err := db.TxGetForUpdate(tx, true, accountId)
-	//accountRow, err := db.TxGet(tx, accountId)
+	//accountRow, err := db.TxGetForUpdate(tx, true, accountId)
+	accountRow, err := db.TxGet(tx, accountId)
 	if err != nil {
 		return account{}, errors.Wrap(err, fmt.Sprintf("get account failed %d %s", tx, accountId))
 	} else if accountRow == nil {
@@ -82,22 +82,12 @@ func getAccount(db Storage, tx int64, user string) (account, error) {
 }
 
 func giveFirstAmount(db Storage) {
-	tx := db.Begin()
 	var err error
-	defer func() {
-		if err != nil {
-			log.Println("transaction", tx, "failed with error", err)
-			log.Println("rollback transaction", db.Rollback(tx))
-		} else {
-			log.Println("commit transaction", db.Commit(tx))
-		}
-	}()
-
 	for _, user := range users {
 		accountId := getAccountId(user)
 		account := account{amount: 1000}
 
-		if err = db.TxSet(tx, accountId, account); err != nil {
+		if err = db.Set(accountId, account); err != nil {
 			err = errors.Wrap(err, "give money for user failed")
 			return
 		}
@@ -148,7 +138,7 @@ func sendMoney(db Storage, fromUser, toUser string, amount int64) {
 		}
 	}()
 
-	if err = db.LockKeys(tx, true, []storage.Key{fromUser, toUser}); err != nil {
+	if err = db.LockKeys(tx, false, []storage.Key{fromUser, toUser}); err != nil {
 		return
 	}
 
@@ -185,6 +175,7 @@ func sendMoney(db Storage, fromUser, toUser string, amount int64) {
 
 type Storage interface {
 	Get(storage.Key) (storage.Row, error)
+	Set(key storage.Key, row storage.Row) error
 	TxGet(int64, storage.Key) (storage.Row, error)
 	TxSet(int64, storage.Key, storage.Row) error
 	Begin() int64

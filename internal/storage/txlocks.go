@@ -2,6 +2,7 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -25,6 +26,10 @@ type txLock struct {
 	wait chan bool
 	txID int64
 	key  Key
+}
+
+func (l *txLock) String() string {
+	return fmt.Sprintf("ID:%d, KEY:%v", l.txID, l.key)
 }
 
 func NewTxLocks() *txLocks {
@@ -58,7 +63,10 @@ func (l *txLocks) InitLocks(txID int64, keys ...Key) ([]waitChan, error) {
 		if err != nil {
 			return nil, err
 		}
-		waitChans = append(waitChans, waitChan)
+
+		if waitChan != nil {
+			waitChans = append(waitChans, waitChan)
+		}
 	}
 
 	return waitChans, nil
@@ -103,9 +111,7 @@ func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKeys map[Key]
 		for _, targetLock := range l.locksQueue[checkLock.key] {
 
 			if !foundCheckLock {
-				if targetLock.txID == checkLock.txID {
-					foundCheckLock = true
-				}
+				foundCheckLock = targetLock.txID == checkLock.txID
 				continue
 			}
 
@@ -139,8 +145,10 @@ func (l *txLocks) Release(txID int64) {
 	l.Lock()
 	defer l.Unlock()
 
-	for j := 0; j < len(l.locksByTx[txID]); j++ {
-		f := *l.locksByTx[txID][j]
+	locksByTx := l.locksByTx[txID]
+
+	for j := 0; j < len(locksByTx); j++ {
+		f := *locksByTx[j]
 		key := f.key
 
 		i, ff := l.getTxInQueueByKey(txID, key)
