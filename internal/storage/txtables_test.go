@@ -28,7 +28,7 @@ func TestTxTables_Begin(t *testing.T) {
 	tabFactory.EXPECT().Create().Return(tab1).Times(1)
 	tabFactory.EXPECT().Create().Return(tab2).Times(1)
 
-	txTables := NewTxTables(NewMockLocks(ctrl), NewMockTxAccess(ctrl), txFactory, tabFactory)
+	txTables := NewTxTables(NewMockTxAccess(ctrl), txFactory, tabFactory)
 
 	assert.Equal(t, tx1.GetID(), txTables.Begin())
 	assert.Equal(t, tx2.GetID(), txTables.Begin())
@@ -65,10 +65,9 @@ func TestTxTables_Commit(t *testing.T) {
 	tabFactory.EXPECT().Create().Return(tab1).Times(1)
 	tabFactory.EXPECT().Create().Return(tab2).Times(1)
 
-	locks := NewMockLocks(ctrl)
-	access := NewMockTxAccess(ctrl)
+	txAccess := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(locks, access, txFactory, tabFactory)
+	txTables := NewTxTables(txAccess, txFactory, tabFactory)
 
 	txTables.Begin()
 	txTables.Begin()
@@ -80,15 +79,14 @@ func TestTxTables_Commit(t *testing.T) {
 	})
 
 	t.Run("not writeable transaction", func(t *testing.T) {
-		access.EXPECT().IsWriteable(tx2).Return(false)
+		txAccess.EXPECT().IsWriteable(tx2).Return(false)
 		err := txTables.Commit(2)
 		assert.Error(t, err)
 		assert.Equal(t, ErrNoWriteableTransaction, err)
 	})
 
 	t.Run("success commit", func(t *testing.T) {
-		access.EXPECT().IsWriteable(tx1).Return(true)
-		locks.EXPECT().Release(tx1.GetID())
+		txAccess.EXPECT().IsWriteable(tx1).Return(true)
 
 		err := txTables.Commit(1)
 		assert.NoError(t, err)
@@ -120,10 +118,9 @@ func TestTxTables_Rollback(t *testing.T) {
 	tabFactory.EXPECT().Create().Return(tab1).Times(1)
 	tabFactory.EXPECT().Create().Return(tab2).Times(1)
 
-	locks := NewMockLocks(ctrl)
 	access := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(locks, access, txFactory, tabFactory)
+	txTables := NewTxTables(access, txFactory, tabFactory)
 
 	txTables.Begin()
 	txTables.Begin()
@@ -143,7 +140,6 @@ func TestTxTables_Rollback(t *testing.T) {
 
 	t.Run("success rollback", func(t *testing.T) {
 		access.EXPECT().IsWriteable(tx1).Return(true)
-		locks.EXPECT().Release(tx1.GetID())
 
 		err := txTables.Rollback(1)
 		assert.NoError(t, err)
@@ -175,10 +171,9 @@ func TestTxTables_GetWriteable(t *testing.T) {
 	tabFactory.EXPECT().Create().Return(tab1).Times(1)
 	tabFactory.EXPECT().Create().Return(tab2).Times(1)
 
-	locks := NewMockLocks(ctrl)
 	access := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(locks, access, txFactory, tabFactory)
+	txTables := NewTxTables(access, txFactory, tabFactory)
 
 	txTables.Begin()
 	txTables.Begin()
@@ -237,10 +232,9 @@ func TestTxTables_IterateReadable(t *testing.T) {
 	tabFactory.EXPECT().Create().Return(tab3).Times(1)
 	tabFactory.EXPECT().Create().Return(tab4).Times(1)
 
-	locks := NewMockLocks(ctrl)
-	access := NewMockTxAccess(ctrl)
+	txAccess := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(locks, access, txFactory, tabFactory)
+	txTables := NewTxTables(txAccess, txFactory, tabFactory)
 
 	t.Run("empty", func(t *testing.T) {
 		var called bool
@@ -266,9 +260,9 @@ func TestTxTables_IterateReadable(t *testing.T) {
 	})
 
 	t.Run("existed transaction", func(t *testing.T) {
-		access.EXPECT().IsReadable(tx2, tx2).Return(true)
-		access.EXPECT().IsReadable(tx3, tx2).Return(false)
-		access.EXPECT().IsReadable(tx4, tx2).Return(true)
+		txAccess.EXPECT().IsReadable(tx2, tx2).Return(true)
+		txAccess.EXPECT().IsReadable(tx3, tx2).Return(false)
+		txAccess.EXPECT().IsReadable(tx4, tx2).Return(true)
 
 		var calledTimes int
 		txTables.IterateReadable(2, func(table RWTable) bool {
@@ -321,10 +315,9 @@ func TestTxTables_Get(t *testing.T) {
 	tabFactory.EXPECT().Create().Return(tab3).Times(1)
 	tabFactory.EXPECT().Create().Return(tab4).Times(1)
 
-	locks := NewMockLocks(ctrl)
-	access := NewMockTxAccess(ctrl)
+	txAccess := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(locks, access, txFactory, tabFactory)
+	txTables := NewTxTables(txAccess, txFactory, tabFactory)
 
 	t.Run("empty", func(t *testing.T) {
 		row, err := txTables.Get(17, 8910)
@@ -344,9 +337,9 @@ func TestTxTables_Get(t *testing.T) {
 	})
 
 	t.Run("existed transaction", func(t *testing.T) {
-		access.EXPECT().IsReadable(tx4, tx3).Return(false)
-		access.EXPECT().IsReadable(tx3, tx3).Return(true)
-		access.EXPECT().IsReadable(tx2, tx3).Return(true)
+		txAccess.EXPECT().IsReadable(tx4, tx3).Return(false)
+		txAccess.EXPECT().IsReadable(tx3, tx3).Return(true)
+		txAccess.EXPECT().IsReadable(tx2, tx3).Return(true)
 
 		tab3.EXPECT().Get(8910).Return(nil, nil)
 		tab2.EXPECT().Get(8910).Return("some value", nil)
@@ -357,8 +350,8 @@ func TestTxTables_Get(t *testing.T) {
 	})
 
 	t.Run("existed transaction", func(t *testing.T) {
-		access.EXPECT().IsReadable(tx4, tx3).Return(false)
-		access.EXPECT().IsReadable(tx3, tx3).Return(true)
+		txAccess.EXPECT().IsReadable(tx4, tx3).Return(false)
+		txAccess.EXPECT().IsReadable(tx3, tx3).Return(true)
 
 		originErr := errors.New("some error")
 
@@ -403,10 +396,9 @@ func TestTxTables_Set(t *testing.T) {
 	tabFactory.EXPECT().Create().Return(tab3).Times(1)
 	tabFactory.EXPECT().Create().Return(tab4).Times(1)
 
-	locks := NewMockLocks(ctrl)
-	access := NewMockTxAccess(ctrl)
+	txAccess := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(locks, access, txFactory, tabFactory)
+	txTables := NewTxTables(txAccess, txFactory, tabFactory)
 
 	t.Run("empty", func(t *testing.T) {
 		err := txTables.Set(17, 8910, "some value")
@@ -426,7 +418,7 @@ func TestTxTables_Set(t *testing.T) {
 	})
 
 	t.Run("transaction not writeable", func(t *testing.T) {
-		access.EXPECT().IsWriteable(tx3).Return(false)
+		txAccess.EXPECT().IsWriteable(tx3).Return(false)
 
 		err := txTables.Set(3, 8910, "some value")
 		assert.Error(t, err)
@@ -434,7 +426,7 @@ func TestTxTables_Set(t *testing.T) {
 	})
 
 	t.Run("success set", func(t *testing.T) {
-		access.EXPECT().IsWriteable(tx2).Return(true)
+		txAccess.EXPECT().IsWriteable(tx2).Return(true)
 		tab2.EXPECT().Set(8910, "some value").Return(nil)
 
 		err := txTables.Set(2, 8910, "some value")
@@ -444,116 +436,11 @@ func TestTxTables_Set(t *testing.T) {
 	t.Run("fail to set", func(t *testing.T) {
 		originErr := errors.New("some error")
 
-		access.EXPECT().IsWriteable(tx1).Return(true)
+		txAccess.EXPECT().IsWriteable(tx1).Return(true)
 		tab1.EXPECT().Set(8910, "some value").Return(originErr)
 
 		actualErr := txTables.Set(1, 8910, "some value")
 		assert.Error(t, actualErr)
 		assert.Equal(t, originErr, actualErr)
-	})
-}
-
-func TestTxTables_Upd(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	now := time.Now()
-	localtime.Now = func() time.Time {
-		return now
-	}
-
-	tx1 := &txObj{txID: 1}
-	tx2 := &txObj{txID: 2}
-	tx3 := &txObj{txID: 3}
-	tx4 := &txObj{txID: 4}
-
-	tab1 := NewMockRWTable(ctrl)
-	tab2 := NewMockRWTable(ctrl)
-	tab3 := NewMockRWTable(ctrl)
-	tab4 := NewMockRWTable(ctrl)
-
-	txFactory := NewMockTxFactory(ctrl)
-	txFactory.EXPECT().Create().Return(tx1).Times(1)
-	txFactory.EXPECT().Create().Return(tx2).Times(1)
-	txFactory.EXPECT().Create().Return(tx3).Times(1)
-	txFactory.EXPECT().Create().Return(tx4).Times(1)
-
-	tabFactory := NewMockRWTabFactory(ctrl)
-	tabFactory.EXPECT().Create().Return(tab1).Times(1)
-	tabFactory.EXPECT().Create().Return(tab2).Times(1)
-	tabFactory.EXPECT().Create().Return(tab3).Times(1)
-	tabFactory.EXPECT().Create().Return(tab4).Times(1)
-
-	locks := NewMockLocks(ctrl)
-	access := NewMockTxAccess(ctrl)
-
-	txTables := NewTxTables(locks, access, txFactory, tabFactory)
-
-	t.Run("empty", func(t *testing.T) {
-		err := txTables.Upd(17, 8910, "some value")
-		assert.Error(t, err)
-		assert.Equal(t, ErrNoWriteableTransaction, err)
-	})
-
-	txTables.Begin()
-	txTables.Begin()
-	txTables.Begin()
-	txTables.Begin()
-
-	t.Run("not existed transaction", func(t *testing.T) {
-		err := txTables.Upd(18, 8910, "some value")
-		assert.Error(t, err)
-		assert.Equal(t, ErrNoWriteableTransaction, err)
-	})
-
-	t.Run("transaction not writeable", func(t *testing.T) {
-		access.EXPECT().IsWriteable(tx3).Return(false)
-
-		err := txTables.Upd(3, 8910, "some value")
-		assert.Error(t, err)
-		assert.Equal(t, ErrNoWriteableTransaction, err)
-	})
-
-	t.Run("get lock failed", func(t *testing.T) {
-		originErr := errors.New("some error")
-		access.EXPECT().IsWriteable(tx2).Return(true)
-		locks.EXPECT().InitLock(tx2.GetID(), 8910).Return(nil, originErr)
-
-		actualErr := txTables.Upd(2, 8910, "some value")
-		assert.Error(t, actualErr)
-		assert.Equal(t, originErr, actualErr)
-	})
-
-	t.Run("wait for unlock", func(t *testing.T) {
-		waitChan := make(waitChan, 1)
-		waitChan <- true
-
-		access.EXPECT().IsWriteable(tx2).Return(true)
-		locks.EXPECT().InitLock(tx2.GetID(), 8910).Return(waitChan, nil)
-		tab2.EXPECT().Set(8910, "some value").Return(nil)
-
-		actualErr := txTables.Upd(2, 8910, "some value")
-		assert.NoError(t, actualErr)
-	})
-
-	t.Run("fail to update", func(t *testing.T) {
-		originErr := errors.New("some error")
-
-		access.EXPECT().IsWriteable(tx2).Return(true)
-		locks.EXPECT().InitLock(tx2.GetID(), 8910).Return(nil, nil)
-		tab2.EXPECT().Set(8910, "some value").Return(originErr)
-
-		actualErr := txTables.Upd(2, 8910, "some value")
-		assert.Error(t, actualErr)
-		assert.Equal(t, originErr, actualErr)
-	})
-
-	t.Run("success update", func(t *testing.T) {
-		access.EXPECT().IsWriteable(tx2).Return(true)
-		locks.EXPECT().InitLock(tx2.GetID(), 8910).Return(nil, nil)
-		tab2.EXPECT().Set(8910, "some value").Return(nil)
-
-		actualErr := txTables.Upd(2, 8910, "some value")
-		assert.NoError(t, actualErr)
 	})
 }

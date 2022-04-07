@@ -25,6 +25,9 @@ type TxTables interface {
 
 	Get(txID int64, key Key) (Row, error)
 	Set(txID int64, key Key, row Row) error
+
+	Vacuum()
+	Persist(func(RWTable) error)
 }
 
 type TxAccess interface {
@@ -42,11 +45,13 @@ type ROTable interface {
 }
 
 type ROTables interface {
+	Grow(ROTable)
 	Get(Key) (Row, error)
 }
 
 type Locks interface {
 	InitLock(txID int64, key Key) (waitChan, error)
+	InitLocks(txID int64, keys ...Key) ([]waitChan, error)
 	Release(txID int64)
 }
 
@@ -57,4 +62,5 @@ type TxObj interface {
 
 	commit()
 	rollback()
+	persist()
 }

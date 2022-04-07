@@ -197,6 +197,18 @@ func (mr *MockTxTablesMockRecorder) Get(txID, key interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTxTables)(nil).Get), txID, key)
 }
 
+// Persist mocks base method.
+func (m *MockTxTables) Persist(arg0 func(RWTable) error) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Persist", arg0)
+}
+
+// Persist indicates an expected call of Persist.
+func (mr *MockTxTablesMockRecorder) Persist(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Persist", reflect.TypeOf((*MockTxTables)(nil).Persist), arg0)
+}
+
 // Rollback mocks base method.
 func (m *MockTxTables) Rollback(txID int64) error {
 	m.ctrl.T.Helper()
@@ -223,6 +235,18 @@ func (m *MockTxTables) Set(txID int64, key Key, row Row) error {
 func (mr *MockTxTablesMockRecorder) Set(txID, key, row interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockTxTables)(nil).Set), txID, key, row)
+}
+
+// Vacuum mocks base method.
+func (m *MockTxTables) Vacuum() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Vacuum")
+}
+
+// Vacuum indicates an expected call of Vacuum.
+func (mr *MockTxTablesMockRecorder) Vacuum() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Vacuum", reflect.TypeOf((*MockTxTables)(nil).Vacuum))
 }
 
 // MockTxAccess is a mock of TxAccess interface.
@@ -404,6 +428,18 @@ func (mr *MockROTablesMockRecorder) Get(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockROTables)(nil).Get), arg0)
 }
 
+// Grow mocks base method.
+func (m *MockROTables) Grow(arg0 ROTable) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Grow", arg0)
+}
+
+// Grow indicates an expected call of Grow.
+func (mr *MockROTablesMockRecorder) Grow(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Grow", reflect.TypeOf((*MockROTables)(nil).Grow), arg0)
+}
+
 // MockLocks is a mock of Locks interface.
 type MockLocks struct {
 	ctrl     *gomock.Controller
@@ -440,6 +476,26 @@ func (m *MockLocks) InitLock(txID int64, key Key) (waitChan, error) {
 func (mr *MockLocksMockRecorder) InitLock(txID, key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitLock", reflect.TypeOf((*MockLocks)(nil).InitLock), txID, key)
+}
+
+// InitLocks mocks base method.
+func (m *MockLocks) InitLocks(txID int64, keys ...Key) ([]waitChan, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{txID}
+	for _, a := range keys {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "InitLocks", varargs...)
+	ret0, _ := ret[0].([]waitChan)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// InitLocks indicates an expected call of InitLocks.
+func (mr *MockLocksMockRecorder) InitLocks(txID interface{}, keys ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{txID}, keys...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitLocks", reflect.TypeOf((*MockLocks)(nil).InitLocks), varargs...)
 }
 
 // Release mocks base method.
@@ -529,6 +585,18 @@ func (m *MockTxObj) commit() {
 func (mr *MockTxObjMockRecorder) commit() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "commit", reflect.TypeOf((*MockTxObj)(nil).commit))
+}
+
+// persist mocks base method.
+func (m *MockTxObj) persist() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "persist")
+}
+
+// persist indicates an expected call of persist.
+func (mr *MockTxObjMockRecorder) persist() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "persist", reflect.TypeOf((*MockTxObj)(nil).persist))
 }
 
 // rollback mocks base method.

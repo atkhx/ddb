@@ -17,7 +17,8 @@ func TestStorage_Begin(t *testing.T) {
 	txTables := NewMockTxTables(ctrl)
 	txTables.EXPECT().Begin().Return(txID)
 
-	storage := NewStorage(NewMockROTables(ctrl), txTables)
+	txLocks := NewMockLocks(ctrl)
+	storage := NewStorage(NewMockROTables(ctrl), txTables, txLocks)
 	assert.Equal(t, txID, storage.Begin())
 }
 
@@ -28,16 +29,19 @@ func TestStorage_Commit(t *testing.T) {
 	txID := int64(123)
 
 	txTables := NewMockTxTables(ctrl)
-	storage := NewStorage(NewMockROTables(ctrl), txTables)
+	txLocks := NewMockLocks(ctrl)
+	storage := NewStorage(NewMockROTables(ctrl), txTables, txLocks)
 
 	t.Run("success", func(t *testing.T) {
 		txTables.EXPECT().Commit(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 		assert.NoError(t, storage.Commit(txID))
 	})
 
 	t.Run("fail", func(t *testing.T) {
 		originErr := errors.New("some error")
 		txTables.EXPECT().Commit(txID).Return(originErr)
+		txLocks.EXPECT().Release(txID)
 
 		actualErr := storage.Commit(txID)
 
@@ -53,16 +57,19 @@ func TestStorage_Rollback(t *testing.T) {
 	txID := int64(123)
 
 	txTables := NewMockTxTables(ctrl)
-	storage := NewStorage(NewMockROTables(ctrl), txTables)
+	txLocks := NewMockLocks(ctrl)
+	storage := NewStorage(NewMockROTables(ctrl), txTables, txLocks)
 
 	t.Run("success", func(t *testing.T) {
 		txTables.EXPECT().Rollback(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 		assert.NoError(t, storage.Rollback(txID))
 	})
 
 	t.Run("fail", func(t *testing.T) {
 		originErr := errors.New("some error")
 		txTables.EXPECT().Rollback(txID).Return(originErr)
+		txLocks.EXPECT().Release(txID)
 
 		actualErr := storage.Rollback(txID)
 
@@ -77,14 +84,15 @@ func TestStorage_Get(t *testing.T) {
 
 	txTables := NewMockTxTables(ctrl)
 	roTables := NewMockROTables(ctrl)
-
-	storage := NewStorage(roTables, txTables)
+	txLocks := NewMockLocks(ctrl)
+	storage := NewStorage(roTables, txTables, txLocks)
 
 	t.Run("not found", func(t *testing.T) {
 		txID := int64(123)
 		txTables.EXPECT().Begin().Return(txID)
 		txTables.EXPECT().Get(txID, 123).Return(nil, nil)
 		txTables.EXPECT().Rollback(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 
 		roTables.EXPECT().Get(123).Return(nil, nil)
 
@@ -99,6 +107,7 @@ func TestStorage_Get(t *testing.T) {
 		txTables.EXPECT().Begin().Return(txID)
 		txTables.EXPECT().Get(txID, 123).Return(nil, nil)
 		txTables.EXPECT().Rollback(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 
 		roTables.EXPECT().Get(123).Return(nil, originErr)
 
@@ -114,6 +123,7 @@ func TestStorage_Get(t *testing.T) {
 		txTables.EXPECT().Begin().Return(txID)
 		txTables.EXPECT().Get(txID, 123).Return(nil, originErr)
 		txTables.EXPECT().Rollback(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 
 		row, err := storage.Get(123)
 		assert.Nil(t, row)
@@ -126,6 +136,7 @@ func TestStorage_Get(t *testing.T) {
 		txTables.EXPECT().Begin().Return(txID)
 		txTables.EXPECT().Get(txID, 123).Return(nil, nil)
 		txTables.EXPECT().Rollback(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 
 		roTables.EXPECT().Get(123).Return("some value", nil)
 
@@ -139,6 +150,7 @@ func TestStorage_Get(t *testing.T) {
 		txTables.EXPECT().Begin().Return(txID)
 		txTables.EXPECT().Get(txID, 123).Return("some value", nil)
 		txTables.EXPECT().Rollback(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 
 		row, err := storage.Get(123)
 		assert.Equal(t, "some value", row)
@@ -151,13 +163,15 @@ func TestStorage_Set(t *testing.T) {
 	defer ctrl.Finish()
 
 	txTables := NewMockTxTables(ctrl)
-	storage := NewStorage(NewMockROTables(ctrl), txTables)
+	txLocks := NewMockLocks(ctrl)
+	storage := NewStorage(NewMockROTables(ctrl), txTables, txLocks)
 
 	t.Run("success", func(t *testing.T) {
 		txID := int64(3)
 		txTables.EXPECT().Begin().Return(txID)
 		txTables.EXPECT().Set(txID, 123, "some value").Return(nil)
 		txTables.EXPECT().Commit(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 
 		err := storage.Set(123, "some value")
 		assert.NoError(t, err)
@@ -169,6 +183,7 @@ func TestStorage_Set(t *testing.T) {
 		txTables.EXPECT().Begin().Return(txID)
 		txTables.EXPECT().Set(txID, 123, "some value").Return(originErr)
 		txTables.EXPECT().Rollback(txID).Return(nil)
+		txLocks.EXPECT().Release(txID)
 
 		err := storage.Set(123, "some value")
 		assert.Error(t, err)

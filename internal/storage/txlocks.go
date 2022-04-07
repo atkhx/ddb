@@ -9,31 +9,34 @@ var ErrDeadLock = errors.New("deadlock")
 
 type waitChan chan bool
 
-func NewTxLock(txID int64) *txLock {
+func NewTxLockWithWait(txID int64, key Key) *txLock {
+	return NewTxLock(txID, key, make(waitChan, 2))
+}
+
+func NewTxLock(txID int64, key Key, wait waitChan) *txLock {
 	return &txLock{
+		wait: wait,
 		txID: txID,
-		wait: make(waitChan, 1),
+		key:  key,
 	}
 }
 
 type txLock struct {
 	wait chan bool
 	txID int64
+	key  Key
 }
 
 func NewTxLocks() *txLocks {
 	return &txLocks{
-		locksByKey: map[Key]int64{},
-		locksByTx:  map[int64][]Key{},
+		locksByTx:  map[int64][]*txLock{},
 		locksQueue: map[Key][]*txLock{},
 	}
 }
 
 type txLocks struct {
 	sync.RWMutex
-	locksByKey map[Key]int64
-	locksByTx  map[int64][]Key
-
+	locksByTx  map[int64][]*txLock
 	locksQueue map[Key][]*txLock
 }
 
@@ -41,71 +44,129 @@ func (l *txLocks) InitLock(txID int64, key Key) (waitChan, error) {
 	l.Lock()
 	defer l.Unlock()
 
-	i, alreadyLocked := l.locksByKey[key]
-	if alreadyLocked {
-		if i == txID {
-			return nil, nil
-		}
+	return l.lockKey(txID, key)
+}
 
-		if err := l.checkForDeadLock(txID, i); err != nil {
+func (l *txLocks) InitLocks(txID int64, keys ...Key) ([]waitChan, error) {
+	l.Lock()
+	defer l.Unlock()
+
+	waitChans := []waitChan{}
+
+	for _, key := range keys {
+		waitChan, err := l.lockKey(txID, key)
+		if err != nil {
 			return nil, err
 		}
+		waitChans = append(waitChans, waitChan)
+	}
 
-		lock := NewTxLock(txID)
+	return waitChans, nil
+}
+
+func (l *txLocks) lockKey(txID int64, key Key) (waitChan, error) {
+	locks := l.locksQueue[key]
+	if len(locks) > 0 {
+		// исключаем самоблок по ключу
+		for i := 0; i < len(locks); i++ {
+			if locks[i].txID == txID {
+				return nil, nil
+			}
+		}
+
+		for _, currentTxLocker := range locks {
+			if err := l.isTxBlocksTargetByKeys(txID, currentTxLocker.txID, map[Key]Key{}); err != nil {
+				return nil, err
+			}
+		}
+
+		lock := NewTxLockWithWait(txID, key)
 		l.locksQueue[key] = append(l.locksQueue[key], lock)
-
+		l.locksByTx[txID] = append(l.locksByTx[txID], lock)
 		return lock.wait, nil
 	}
 
-	l.locksByKey[key] = txID
-	l.locksByTx[txID] = append(l.locksByTx[txID], key)
-
+	lock := NewTxLock(txID, key, nil)
+	l.locksQueue[key] = append(l.locksQueue[key], lock)
+	l.locksByTx[txID] = append(l.locksByTx[txID], lock)
 	return nil, nil
 }
 
-func (l *txLocks) checkForDeadLock(txID int64, targetTxID int64) error {
-	for key, locks := range l.locksQueue {
-		for _, lock := range locks {
-			if lock.txID == targetTxID {
-				lockedByTx, ok := l.locksByKey[key]
-				if !ok {
-					continue
-				}
+func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKeys map[Key]Key) error {
+	checkLocks := l.locksByTx[txID]
+	for _, checkLock := range checkLocks {
+		if _, ok := skipKeys[checkLock.key]; ok {
+			continue
+		}
 
-				if lockedByTx == txID {
-					return ErrDeadLock
-				}
+		foundCheckLock := false
+		for _, targetLock := range l.locksQueue[checkLock.key] {
 
-				if err := l.checkForDeadLock(txID, lockedByTx); err != nil {
-					return err
+			if !foundCheckLock {
+				if targetLock.txID == checkLock.txID {
+					foundCheckLock = true
 				}
+				continue
+			}
+
+			// далее только заблокированные нами (checkLock)
+
+			// исходная транзакция блокирет целевую
+			if targetLock.txID == targetTx {
+				return ErrDeadLock
+			}
+
+			// проверяем вторичную блокировку
+			// мы залочили targetLock.txID, а она могла залочить целевую
+			if err := l.isTxBlocksTargetByKeys(targetLock.txID, targetTx, map[Key]Key{checkLock.key: checkLock.key}); err != nil {
+				return err
 			}
 		}
 	}
 	return nil
 }
 
+func (l *txLocks) getTxInQueueByKey(txID int64, key Key) (int, *txLock) {
+	for i := 0; i < len(l.locksQueue[key]); i++ {
+		if l.locksQueue[key][i].txID == txID {
+			return i, l.locksQueue[key][i]
+		}
+	}
+	return 0, nil
+}
+
 func (l *txLocks) Release(txID int64) {
 	l.Lock()
 	defer l.Unlock()
 
-	release := []waitChan{}
+	for j := 0; j < len(l.locksByTx[txID]); j++ {
+		f := *l.locksByTx[txID][j]
+		key := f.key
 
-	for _, key := range l.locksByTx[txID] {
-		if chans, ok := l.locksQueue[key]; ok && len(chans) > 0 {
-			lock := chans[0]
-			l.locksQueue[key] = l.locksQueue[key][1:]
-
-			release = append(release, lock.wait)
-			l.locksByKey[key] = lock.txID
-		} else {
-			delete(l.locksByKey, key)
+		i, ff := l.getTxInQueueByKey(txID, key)
+		if ff == nil {
+			panic("lock not found in queue")
 		}
+
+		if f.wait != nil {
+			f.wait <- false
+		}
+
+		locksByKey := l.locksQueue[key]
+		newLocks := []*txLock{}
+		for k := 0; k < len(locksByKey); k++ {
+			if k != i {
+				newLocks = append(newLocks, locksByKey[k])
+			}
+		}
+
+		if i == 0 && len(newLocks) > 0 {
+			newLocks[0].wait <- true
+			newLocks[0].wait = nil
+		}
+
+		l.locksQueue[key] = newLocks
 	}
 
 	delete(l.locksByTx, txID)
-
-	for _, c := range release {
-		c <- true
-	}
 }

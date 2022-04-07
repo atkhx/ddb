@@ -8,13 +8,11 @@ import (
 var ErrNoWriteableTransaction = errors.New("no writeable transaction")
 
 func NewTxTables(
-	locks Locks,
 	txAccess TxAccess,
 	txFactory TxFactory,
 	tabFactory RWTabFactory,
 ) *txTables {
 	return &txTables{
-		locks:      locks,
 		txAccess:   txAccess,
 		txFactory:  txFactory,
 		tabFactory: tabFactory,
@@ -30,7 +28,6 @@ type txTables struct {
 	sync.RWMutex
 	txAccess TxAccess
 	tables   []txTable
-	locks    Locks
 
 	txFactory  TxFactory
 	tabFactory RWTabFactory
@@ -53,7 +50,6 @@ func (tt *txTables) Begin() int64 {
 
 func (tt *txTables) Commit(txID int64) error {
 	if _, tx := tt.GetWriteable(txID); tx != nil {
-		defer tt.locks.Release(tx.GetID())
 		tx.commit()
 		return nil
 	}
@@ -62,16 +58,49 @@ func (tt *txTables) Commit(txID int64) error {
 
 func (tt *txTables) Rollback(txID int64) error {
 	if _, tx := tt.GetWriteable(txID); tx != nil {
-		defer tt.locks.Release(tx.GetID())
 		tx.rollback()
 		return nil
 	}
 	return ErrNoWriteableTransaction
 }
 
+func (tt *txTables) Persist(persistFn func(RWTable) error) {
+	// iterate by copy
+	tt.RLock()
+	var tables = tt.tables
+	tt.RUnlock()
+
+	for _, txTable := range tables {
+		if txTable.txObj.GetState() == TxCommitted {
+			if err := persistFn(txTable.table); err != nil {
+				break
+			}
+			txTable.txObj.persist()
+		}
+	}
+}
+
+func (tt *txTables) Vacuum() {
+	tt.Lock()
+	defer tt.Unlock()
+
+	var tables []txTable
+	for _, txTable := range tt.tables {
+		if txTable.txObj.GetState() == TxRolledBack || txTable.txObj.GetState() == TxPersisted {
+			continue
+		}
+		tables = append(tables, txTable)
+	}
+
+	tt.tables = tables
+}
+
 func (tt *txTables) GetWriteable(txID int64) (RWTable, TxObj) {
 	// iterate by copy
+	tt.RLock()
 	var tables = tt.tables
+	tt.RUnlock()
+
 	for i := len(tables); i > 0; i-- {
 		if tables[i-1].txObj.GetID() > txID {
 			continue
@@ -92,7 +121,9 @@ func (tt *txTables) GetWriteable(txID int64) (RWTable, TxObj) {
 
 func (tt *txTables) IterateReadable(txID int64, fn func(RWTable) bool) {
 	// iterate by copy
+	tt.RLock()
 	var tables = tt.tables
+	tt.RUnlock()
 
 	var tx TxObj
 	for i := len(tables); i > 0; i-- {
@@ -130,22 +161,4 @@ func (tt *txTables) Set(txID int64, key Key, row Row) error {
 		return table.Set(key, row)
 	}
 	return ErrNoWriteableTransaction
-}
-
-func (tt *txTables) Upd(txID int64, key Key, row Row) error {
-	table, tx := tt.GetWriteable(txID)
-	if tx == nil {
-		return ErrNoWriteableTransaction
-	}
-
-	waitForUnlock, err := tt.locks.InitLock(tx.GetID(), key)
-	if err != nil {
-		return err
-	}
-
-	if waitForUnlock != nil {
-		<-waitForUnlock
-	}
-
-	return table.Set(key, row)
 }
