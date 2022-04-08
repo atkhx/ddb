@@ -44,9 +44,8 @@ type RWTabFactory interface {
 	Create() RWTable
 }
 
-type TxAccess interface {
+type TxIsolation interface {
 	IsReadable(originTx, txObj TxObj) bool
-	IsWriteable(originTx TxObj) bool
 }
 
 type RWTable interface {
@@ -74,6 +73,11 @@ type TxObj interface {
 	GetState() TxState
 	GetTime() time.Time
 	GetOptSkipLocked() bool
+
+	IsWriteable() bool
+	IsReadable() bool
+
+	GetIsolation() TxIsolation
 
 	getTxTable() RWTable
 	commit()

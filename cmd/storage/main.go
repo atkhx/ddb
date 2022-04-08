@@ -18,7 +18,7 @@ func main() {
 
 	txLocks := storage.NewTxLocks()
 	ssTables := storage.NewSSTables()
-	txTables := storage.NewTxManager(storage.NewReadCommitted(), txFactory, rwTabFactory)
+	txTables := storage.NewTxManager(txFactory, rwTabFactory)
 
 	//go scheduleVacuum(10*time.Millisecond, txTables)
 	//go schedulePersister(100*time.Millisecond, txTables, ssTables)
@@ -51,7 +51,7 @@ func main() {
 	checkTotalAmount(db)
 }
 
-var users = makeUsers(5000)
+var users = makeUsers(10000)
 
 type account struct {
 	amount int64

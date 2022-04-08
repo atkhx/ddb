@@ -19,6 +19,7 @@ func NewTxObj(txID int64, txTable RWTable, options ...txOpt) *txObj {
 	res := &txObj{txID: txID}
 	res.setState(TxUncommitted)
 	res.txTable = txTable
+	res.txIsolation = ReadCommitted
 
 	for _, opt := range options {
 		opt(res)
@@ -32,6 +33,8 @@ type txObj struct {
 	txTime  time.Time
 	txState TxState
 	txTable RWTable
+
+	txIsolation TxIsolation
 
 	skipLocked bool
 }
@@ -50,6 +53,18 @@ func (tx *txObj) GetTime() time.Time {
 
 func (tx *txObj) GetOptSkipLocked() bool {
 	return tx.skipLocked
+}
+
+func (tx *txObj) IsWriteable() bool {
+	return tx.txState == TxUncommitted
+}
+
+func (tx *txObj) IsReadable() bool {
+	return tx.txState != TxRolledBack
+}
+
+func (tx *txObj) GetIsolation() TxIsolation {
+	return tx.txIsolation
 }
 
 func (tx *txObj) setState(state TxState) {

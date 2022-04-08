@@ -38,7 +38,7 @@ func TestTxAccess_IsWriteable(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, tc.expected, NewTxAccess().IsWriteable(tc.txTarget))
+			assert.Equal(t, tc.expected, NewRepeatableRead().IsWriteable(tc.txTarget))
 		})
 	}
 }
@@ -106,7 +106,7 @@ func TestTxAccess_IsReadable(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			assert.Equal(t, tc.expected, NewTxAccess().IsReadable(tc.txInitial, tc.txTarget))
+			assert.Equal(t, tc.expected, NewRepeatableRead().IsReadable(tc.txInitial, tc.txTarget))
 		})
 	}
 }

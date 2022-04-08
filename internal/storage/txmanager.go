@@ -8,12 +8,10 @@ import (
 var ErrNoWriteableTransaction = errors.New("no writeable txObj")
 
 func NewTxManager(
-	txAccess TxAccess,
 	txFactory TxFactory,
 	tabFactory RWTabFactory,
 ) *txManager {
 	return &txManager{
-		txAccess:   txAccess,
 		txFactory:  txFactory,
 		tabFactory: tabFactory,
 	}
@@ -27,8 +25,7 @@ type txChain struct {
 
 type txManager struct {
 	sync.RWMutex
-	txAccess TxAccess
-	txChain  *txChain
+	txChain *txChain
 
 	txFactory  TxFactory
 	tabFactory RWTabFactory
@@ -39,7 +36,7 @@ func (tt *txManager) Begin(options ...txOpt) TxObj {
 }
 
 func (tt *txManager) Commit(txObj TxObj) error {
-	if tt.txAccess.IsWriteable(txObj) {
+	if txObj.IsWriteable() {
 		tt.Lock()
 		txObj.commit()
 
@@ -56,7 +53,7 @@ func (tt *txManager) Commit(txObj TxObj) error {
 }
 
 func (tt *txManager) Rollback(txObj TxObj) error {
-	if tt.txAccess.IsWriteable(txObj) {
+	if txObj.IsWriteable() {
 		txObj.rollback()
 		return nil
 	}
@@ -95,14 +92,13 @@ func (tt *txManager) Vacuum() {
 }
 
 func (tt *txManager) IterateReadable(txObj TxObj, fn func(RWTable) bool) {
-	if txObj.GetState() == TxUncommitted && tt.txAccess.IsReadable(txObj, txObj) && fn(txObj.getTxTable()) {
-		tt.RUnlock()
+	if txObj.IsReadable() && fn(txObj.getTxTable()) {
 		return
 	}
 
 	txt := tt.txChain
 	for txt != nil {
-		if tt.txAccess.IsReadable(txt.txObj, txObj) && fn(txt.txObj.getTxTable()) {
+		if txObj.GetIsolation().IsReadable(txt.txObj, txObj) && fn(txt.txObj.getTxTable()) {
 			return
 		}
 		txt = txt.prev
@@ -119,7 +115,7 @@ func (tt *txManager) Get(txObj TxObj, key Key) (row Row, err error) {
 }
 
 func (tt *txManager) Set(txObj TxObj, key Key, row Row) error {
-	if tt.txAccess.IsWriteable(txObj) {
+	if txObj.IsWriteable() {
 		return txObj.getTxTable().Set(key, row)
 	}
 	return ErrNoWriteableTransaction

@@ -1,12 +1,17 @@
 package storage
 
-func NewTxAccess() *txAccess {
-	return &txAccess{}
+var (
+	ReadCommitted  = NewReadCommitted()
+	RepeatableRead = NewRepeatableRead()
+)
+
+func NewRepeatableRead() *txRepeateableRead {
+	return &txRepeateableRead{}
 }
 
-type txAccess struct{}
+type txRepeateableRead struct{}
 
-func (a *txAccess) IsReadable(originTx, txObj TxObj) bool {
+func (a *txRepeateableRead) IsReadable(originTx, txObj TxObj) bool {
 	if originTx.GetID() > txObj.GetID() {
 		return false
 	}
@@ -16,10 +21,6 @@ func (a *txAccess) IsReadable(originTx, txObj TxObj) bool {
 	}
 
 	return originTx.GetState() == TxCommitted && originTx.GetTime().Before(txObj.GetTime())
-}
-
-func (a *txAccess) IsWriteable(originTx TxObj) bool {
-	return originTx.GetState() == TxUncommitted
 }
 
 func NewReadCommitted() *txAccessReadCommitted {
@@ -34,8 +35,4 @@ func (a *txAccessReadCommitted) IsReadable(originTx, txObj TxObj) bool {
 	}
 
 	return originTx.GetState() == TxCommitted
-}
-
-func (a *txAccessReadCommitted) IsWriteable(originTx TxObj) bool {
-	return originTx.GetState() == TxUncommitted
 }

@@ -401,7 +401,7 @@ func (mr *MockRWTabFactoryMockRecorder) Create() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockRWTabFactory)(nil).Create))
 }
 
-// MockTxAccess is a mock of TxAccess interface.
+// MockTxAccess is a mock of TxIsolation interface.
 type MockTxAccess struct {
 	ctrl     *gomock.Controller
 	recorder *MockTxAccessMockRecorder
