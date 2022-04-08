@@ -9,25 +9,39 @@ type Key interface {
 type Row interface {
 }
 
+type Storage interface {
+	Get(Key) (Row, error)
+	Set(key Key, row Row) error
+	TxGet(TxObj, Key) (Row, error)
+	TxSet(TxObj, Key, Row) error
+
+	Begin(options ...txOpt) TxObj
+	Commit(TxObj) error
+	Rollback(TxObj) error
+
+	TxGetForUpdate(TxObj, Key) (Row, error)
+	LockKeys(txObj TxObj, keys []Key) error
+}
+
+type TxManager interface {
+	Begin(options ...txOpt) TxObj
+
+	Commit(TxObj) error
+	Rollback(TxObj) error
+
+	Get(TxObj, Key) (Row, error)
+	Set(TxObj, Key, Row) error
+
+	Vacuum()
+	Persist(func(RWTable) error)
+}
+
 type TxFactory interface {
-	Create() TxObj
+	Create(RWTable, ...txOpt) TxObj
 }
 
 type RWTabFactory interface {
 	Create() RWTable
-}
-
-type TxTables interface {
-	Begin() int64
-
-	Commit(txID int64) error
-	Rollback(txID int64) error
-
-	Get(txID int64, key Key) (Row, error)
-	Set(txID int64, key Key, row Row) error
-
-	Vacuum()
-	Persist(func(RWTable) error)
 }
 
 type TxAccess interface {
@@ -59,7 +73,9 @@ type TxObj interface {
 	GetID() int64
 	GetState() TxState
 	GetTime() time.Time
+	GetOptSkipLocked() bool
 
+	getTxTable() RWTable
 	commit()
 	rollback()
 	persist()

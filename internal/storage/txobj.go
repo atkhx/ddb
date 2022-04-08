@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"sync"
 	"time"
 
 	"github.com/atkhx/ddb/pkg/localtime"
@@ -16,18 +15,25 @@ const (
 	TxPersisted
 )
 
-func NewTxObj(txID int64) *txObj {
+func NewTxObj(txID int64, txTable RWTable, options ...txOpt) *txObj {
 	res := &txObj{txID: txID}
 	res.setState(TxUncommitted)
+	res.txTable = txTable
+
+	for _, opt := range options {
+		opt(res)
+	}
+
 	return res
 }
 
 type txObj struct {
-	mu sync.RWMutex
-
 	txID    int64
 	txTime  time.Time
 	txState TxState
+	txTable RWTable
+
+	skipLocked bool
 }
 
 func (tx *txObj) GetID() int64 {
@@ -42,11 +48,17 @@ func (tx *txObj) GetTime() time.Time {
 	return tx.txTime
 }
 
+func (tx *txObj) GetOptSkipLocked() bool {
+	return tx.skipLocked
+}
+
 func (tx *txObj) setState(state TxState) {
-	tx.mu.Lock()
 	tx.txState = state
 	tx.txTime = localtime.Now()
-	tx.mu.Unlock()
+}
+
+func (tx *txObj) getTxTable() RWTable {
+	return tx.txTable
 }
 
 func (tx *txObj) commit() {

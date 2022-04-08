@@ -1,85 +1,79 @@
 package storage
 
-import (
-	"github.com/pkg/errors"
-)
+import "errors"
 
 func NewStorage(
 	roTables ROTables,
-	txTables TxTables,
+	txManager TxManager,
 	txLocks Locks,
 ) *storage {
 	return &storage{
-		roTables: roTables,
-		txTables: txTables,
-		txLocks:  txLocks,
+		roTables:  roTables,
+		txManager: txManager,
+		txLocks:   txLocks,
 	}
 }
 
 type storage struct {
-	roTables ROTables
-	txTables TxTables
-	txLocks  Locks
+	roTables  ROTables
+	txManager TxManager
+	txLocks   Locks
 }
 
-func (s *storage) Begin() int64 {
-	return s.txTables.Begin()
+func (s *storage) Begin(options ...txOpt) TxObj {
+	return s.txManager.Begin(options...)
 }
 
-func (s *storage) Commit(txID int64) error {
-	defer s.txLocks.Release(txID)
-	return s.txTables.Commit(txID)
+func (s *storage) Commit(txObj TxObj) error {
+	defer s.txLocks.Release(txObj.GetID())
+	return s.txManager.Commit(txObj)
 }
 
-func (s *storage) Rollback(txID int64) error {
-	defer s.txLocks.Release(txID)
-	return s.txTables.Rollback(txID)
+func (s *storage) Rollback(txObj TxObj) error {
+	defer s.txLocks.Release(txObj.GetID())
+	return s.txManager.Rollback(txObj)
 }
 
 func (s *storage) Get(key Key) (Row, error) {
-	txID := s.Begin()
+	txObj := s.Begin()
 	defer func() {
-		_ = s.Rollback(txID)
+		_ = s.Rollback(txObj)
 	}()
-	return s.TxGet(txID, key)
+	return s.TxGet(txObj, key)
 }
 
 func (s *storage) Set(key Key, row Row) error {
-	txID := s.Begin()
-	if err := s.TxSet(txID, key, row); err != nil {
+	txObj := s.Begin()
+	if err := s.TxSet(txObj, key, row); err != nil {
 		defer func() {
-			_ = s.Rollback(txID)
+			_ = s.Rollback(txObj)
 		}()
 		return err
 	}
-	return s.Commit(txID)
+	return s.Commit(txObj)
 }
 
-func (s *storage) TxGet(txID int64, key Key) (Row, error) {
-	row, err := s.txTables.Get(txID, key)
+func (s *storage) TxGet(txObj TxObj, key Key) (Row, error) {
+	row, err := s.txManager.Get(txObj, key)
 	if err != nil || row != nil {
 		return row, err
 	}
 	return s.roTables.Get(key)
 }
 
-func (s *storage) TxGetForUpdate(txID int64, skipLocked bool, key Key) (Row, error) {
-	waitForUnlock, err := s.txLocks.InitLock(txID, key)
-	if err != nil {
+func (s *storage) TxSet(txObj TxObj, key Key, row Row) error {
+	if err := s.LockKeys(txObj, []Key{key}); err != nil {
+		return err
+	}
+	return s.txManager.Set(txObj, key, row)
+}
+
+func (s *storage) TxGetForUpdate(txObj TxObj, key Key) (Row, error) {
+	if err := s.LockKeys(txObj, []Key{key}); err != nil {
 		return nil, err
 	}
 
-	if skipLocked && waitForUnlock != nil {
-		return nil, errors.New("already locked")
-	}
-
-	if waitForUnlock != nil {
-		if ok := <-waitForUnlock; !ok {
-			return nil, errors.New("wait cancelled")
-		}
-	}
-
-	row, err := s.TxGet(txID, key)
+	row, err := s.TxGet(txObj, key)
 	if err != nil {
 		//s.txLocks.Release(txID)
 		return nil, err
@@ -88,24 +82,20 @@ func (s *storage) TxGetForUpdate(txID int64, skipLocked bool, key Key) (Row, err
 	return row, err
 }
 
-func (s *storage) LockKeys(txID int64, skipLocked bool, keys []Key) error {
-	waitForUnlockChans, err := s.txLocks.InitLocks(txID, keys...)
+func (s *storage) LockKeys(txObj TxObj, keys []Key) error {
+	waitForUnlock, err := s.txLocks.InitLocks(txObj.GetID(), keys...)
 	if err != nil {
 		return err
 	}
 
-	if skipLocked && len(waitForUnlockChans) > 0 {
+	if txObj.GetOptSkipLocked() && len(waitForUnlock) > 0 {
 		return errors.New("already locked")
 	}
 
-	for _, waitForUnlock := range waitForUnlockChans {
-		if ok := <-waitForUnlock; !ok {
+	for _, wait := range waitForUnlock {
+		if ok := <-wait; !ok {
 			return errors.New("wait cancelled")
 		}
 	}
 	return nil
-}
-
-func (s *storage) TxSet(txID int64, key Key, row Row) error {
-	return s.txTables.Set(txID, key, row)
 }

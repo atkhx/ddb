@@ -12,6 +12,6 @@ type txFactory struct {
 	txCounter int64
 }
 
-func (f *txFactory) Create() TxObj {
-	return NewTxObj(atomic.AddInt64(&f.txCounter, 1))
+func (f *txFactory) Create(txTable RWTable, options ...txOpt) TxObj {
+	return NewTxObj(atomic.AddInt64(&f.txCounter, 1), txTable, options...)
 }

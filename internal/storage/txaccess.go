@@ -21,3 +21,21 @@ func (a *txAccess) IsReadable(originTx, txObj TxObj) bool {
 func (a *txAccess) IsWriteable(originTx TxObj) bool {
 	return originTx.GetState() == TxUncommitted
 }
+
+func NewReadCommitted() *txAccessReadCommitted {
+	return &txAccessReadCommitted{}
+}
+
+type txAccessReadCommitted struct{}
+
+func (a *txAccessReadCommitted) IsReadable(originTx, txObj TxObj) bool {
+	if originTx.GetID() == txObj.GetID() {
+		return originTx.GetState() != TxRolledBack
+	}
+
+	return originTx.GetState() == TxCommitted
+}
+
+func (a *txAccessReadCommitted) IsWriteable(originTx TxObj) bool {
+	return originTx.GetState() == TxUncommitted
+}

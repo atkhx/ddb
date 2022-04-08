@@ -28,7 +28,7 @@ func TestTxTables_Begin(t *testing.T) {
 	tabFactory.EXPECT().Create().Return(tab1).Times(1)
 	tabFactory.EXPECT().Create().Return(tab2).Times(1)
 
-	txTables := NewTxTables(NewMockTxAccess(ctrl), txFactory, tabFactory)
+	txTables := NewTxManager(NewMockTxAccess(ctrl), txFactory, tabFactory)
 
 	assert.Equal(t, tx1.GetID(), txTables.Begin())
 	assert.Equal(t, tx2.GetID(), txTables.Begin())
@@ -67,7 +67,7 @@ func TestTxTables_Commit(t *testing.T) {
 
 	txAccess := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(txAccess, txFactory, tabFactory)
+	txTables := NewTxManager(txAccess, txFactory, tabFactory)
 
 	txTables.Begin()
 	txTables.Begin()
@@ -78,7 +78,7 @@ func TestTxTables_Commit(t *testing.T) {
 		assert.Equal(t, ErrNoWriteableTransaction, err)
 	})
 
-	t.Run("not writeable transaction", func(t *testing.T) {
+	t.Run("not writeable txObj", func(t *testing.T) {
 		txAccess.EXPECT().IsWriteable(tx2).Return(false)
 		err := txTables.Commit(2)
 		assert.Error(t, err)
@@ -120,7 +120,7 @@ func TestTxTables_Rollback(t *testing.T) {
 
 	access := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(access, txFactory, tabFactory)
+	txTables := NewTxManager(access, txFactory, tabFactory)
 
 	txTables.Begin()
 	txTables.Begin()
@@ -131,7 +131,7 @@ func TestTxTables_Rollback(t *testing.T) {
 		assert.Equal(t, ErrNoWriteableTransaction, err)
 	})
 
-	t.Run("not writeable transaction", func(t *testing.T) {
+	t.Run("not writeable txObj", func(t *testing.T) {
 		access.EXPECT().IsWriteable(tx2).Return(false)
 		err := txTables.Rollback(2)
 		assert.Error(t, err)
@@ -173,7 +173,7 @@ func TestTxTables_GetWriteable(t *testing.T) {
 
 	access := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(access, txFactory, tabFactory)
+	txTables := NewTxManager(access, txFactory, tabFactory)
 
 	txTables.Begin()
 	txTables.Begin()
@@ -184,7 +184,7 @@ func TestTxTables_GetWriteable(t *testing.T) {
 		assert.Nil(t, txObj)
 	})
 
-	t.Run("not writeable transaction", func(t *testing.T) {
+	t.Run("not writeable txObj", func(t *testing.T) {
 		access.EXPECT().IsWriteable(tx2).Return(false)
 
 		table, txObj := txTables.GetWriteable(2)
@@ -234,7 +234,7 @@ func TestTxTables_IterateReadable(t *testing.T) {
 
 	txAccess := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(txAccess, txFactory, tabFactory)
+	txTables := NewTxManager(txAccess, txFactory, tabFactory)
 
 	t.Run("empty", func(t *testing.T) {
 		var called bool
@@ -250,7 +250,7 @@ func TestTxTables_IterateReadable(t *testing.T) {
 	txTables.Begin()
 	txTables.Begin()
 
-	t.Run("not existed transaction", func(t *testing.T) {
+	t.Run("not existed txObj", func(t *testing.T) {
 		var called bool
 		txTables.IterateReadable(17, func(_ RWTable) bool {
 			called = true
@@ -259,7 +259,7 @@ func TestTxTables_IterateReadable(t *testing.T) {
 		assert.False(t, called)
 	})
 
-	t.Run("existed transaction", func(t *testing.T) {
+	t.Run("existed txObj", func(t *testing.T) {
 		txAccess.EXPECT().IsReadable(tx2, tx2).Return(true)
 		txAccess.EXPECT().IsReadable(tx3, tx2).Return(false)
 		txAccess.EXPECT().IsReadable(tx4, tx2).Return(true)
@@ -317,7 +317,7 @@ func TestTxTables_Get(t *testing.T) {
 
 	txAccess := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(txAccess, txFactory, tabFactory)
+	txTables := NewTxManager(txAccess, txFactory, tabFactory)
 
 	t.Run("empty", func(t *testing.T) {
 		row, err := txTables.Get(17, 8910)
@@ -330,13 +330,13 @@ func TestTxTables_Get(t *testing.T) {
 	txTables.Begin()
 	txTables.Begin()
 
-	t.Run("not existed transaction", func(t *testing.T) {
+	t.Run("not existed txObj", func(t *testing.T) {
 		row, err := txTables.Get(18, 8910)
 		assert.Nil(t, row)
 		assert.NoError(t, err)
 	})
 
-	t.Run("existed transaction", func(t *testing.T) {
+	t.Run("existed txObj", func(t *testing.T) {
 		txAccess.EXPECT().IsReadable(tx4, tx3).Return(false)
 		txAccess.EXPECT().IsReadable(tx3, tx3).Return(true)
 		txAccess.EXPECT().IsReadable(tx2, tx3).Return(true)
@@ -349,7 +349,7 @@ func TestTxTables_Get(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("existed transaction", func(t *testing.T) {
+	t.Run("existed txObj", func(t *testing.T) {
 		txAccess.EXPECT().IsReadable(tx4, tx3).Return(false)
 		txAccess.EXPECT().IsReadable(tx3, tx3).Return(true)
 
@@ -398,7 +398,7 @@ func TestTxTables_Set(t *testing.T) {
 
 	txAccess := NewMockTxAccess(ctrl)
 
-	txTables := NewTxTables(txAccess, txFactory, tabFactory)
+	txTables := NewTxManager(txAccess, txFactory, tabFactory)
 
 	t.Run("empty", func(t *testing.T) {
 		err := txTables.Set(17, 8910, "some value")
@@ -411,13 +411,13 @@ func TestTxTables_Set(t *testing.T) {
 	txTables.Begin()
 	txTables.Begin()
 
-	t.Run("not existed transaction", func(t *testing.T) {
+	t.Run("not existed txObj", func(t *testing.T) {
 		err := txTables.Set(18, 8910, "some value")
 		assert.Error(t, err)
 		assert.Equal(t, ErrNoWriteableTransaction, err)
 	})
 
-	t.Run("transaction not writeable", func(t *testing.T) {
+	t.Run("txObj not writeable", func(t *testing.T) {
 		txAccess.EXPECT().IsWriteable(tx3).Return(false)
 
 		err := txTables.Set(3, 8910, "some value")
