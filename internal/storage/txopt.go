@@ -1,17 +1,15 @@
 package storage
 
-type txOpt func(obj *txObj)
+type TxOpt func(obj *txObj)
 
-func ReadCommitted() txOpt {
+func ReadCommitted() TxOpt {
 	return func(obj *txObj) {
-		obj.skipLocked = false
 		obj.txIsolation = readCommitted
 	}
 }
 
-func RepeatableRead() txOpt {
+func RepeatableRead() TxOpt {
 	return func(obj *txObj) {
-		obj.skipLocked = true
 		obj.txIsolation = repeatableRead
 	}
 }

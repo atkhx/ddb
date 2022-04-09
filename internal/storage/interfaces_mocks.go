@@ -81,17 +81,21 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 }
 
 // Begin mocks base method.
-func (m *MockStorage) Begin() TxObj {
+func (m *MockStorage) Begin(options ...TxOpt) TxObj {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Begin")
+	varargs := []interface{}{}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Begin", varargs...)
 	ret0, _ := ret[0].(TxObj)
 	return ret0
 }
 
 // Begin indicates an expected call of Begin.
-func (mr *MockStorageMockRecorder) Begin() *gomock.Call {
+func (mr *MockStorageMockRecorder) Begin(options ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockStorage)(nil).Begin))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockStorage)(nil).Begin), options...)
 }
 
 // Commit mocks base method.
@@ -124,17 +128,17 @@ func (mr *MockStorageMockRecorder) Get(arg0 interface{}) *gomock.Call {
 }
 
 // LockKeys mocks base method.
-func (m *MockStorage) LockKeys(txObj TxObj, skipLocked bool, keys []Key) error {
+func (m *MockStorage) LockKeys(txObj TxObj, keys []Key) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LockKeys", txObj, skipLocked, keys)
+	ret := m.ctrl.Call(m, "LockKeys", txObj, keys)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // LockKeys indicates an expected call of LockKeys.
-func (mr *MockStorageMockRecorder) LockKeys(txObj, skipLocked, keys interface{}) *gomock.Call {
+func (mr *MockStorageMockRecorder) LockKeys(txObj, keys interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockKeys", reflect.TypeOf((*MockStorage)(nil).LockKeys), txObj, skipLocked, keys)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockKeys", reflect.TypeOf((*MockStorage)(nil).LockKeys), txObj, keys)
 }
 
 // Rollback mocks base method.
@@ -181,18 +185,18 @@ func (mr *MockStorageMockRecorder) TxGet(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // TxGetForUpdate mocks base method.
-func (m *MockStorage) TxGetForUpdate(arg0 TxObj, arg1 bool, arg2 Key) (Row, error) {
+func (m *MockStorage) TxGetForUpdate(arg0 TxObj, arg1 Key) (Row, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TxGetForUpdate", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "TxGetForUpdate", arg0, arg1)
 	ret0, _ := ret[0].(Row)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // TxGetForUpdate indicates an expected call of TxGetForUpdate.
-func (mr *MockStorageMockRecorder) TxGetForUpdate(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockStorageMockRecorder) TxGetForUpdate(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TxGetForUpdate", reflect.TypeOf((*MockStorage)(nil).TxGetForUpdate), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TxGetForUpdate", reflect.TypeOf((*MockStorage)(nil).TxGetForUpdate), arg0, arg1)
 }
 
 // TxSet mocks base method.
@@ -233,17 +237,21 @@ func (m *MockTxManager) EXPECT() *MockTxManagerMockRecorder {
 }
 
 // Begin mocks base method.
-func (m *MockTxManager) Begin() TxObj {
+func (m *MockTxManager) Begin(options ...TxOpt) TxObj {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Begin")
+	varargs := []interface{}{}
+	for _, a := range options {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Begin", varargs...)
 	ret0, _ := ret[0].(TxObj)
 	return ret0
 }
 
 // Begin indicates an expected call of Begin.
-func (mr *MockTxManagerMockRecorder) Begin() *gomock.Call {
+func (mr *MockTxManagerMockRecorder) Begin(options ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockTxManager)(nil).Begin))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Begin", reflect.TypeOf((*MockTxManager)(nil).Begin), options...)
 }
 
 // Commit mocks base method.
@@ -275,18 +283,6 @@ func (mr *MockTxManagerMockRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTxManager)(nil).Get), arg0, arg1)
 }
 
-// Persist mocks base method.
-func (m *MockTxManager) Persist(arg0 func(RWTable) error) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Persist", arg0)
-}
-
-// Persist indicates an expected call of Persist.
-func (mr *MockTxManagerMockRecorder) Persist(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Persist", reflect.TypeOf((*MockTxManager)(nil).Persist), arg0)
-}
-
 // Rollback mocks base method.
 func (m *MockTxManager) Rollback(arg0 TxObj) error {
 	m.ctrl.T.Helper()
@@ -315,18 +311,6 @@ func (mr *MockTxManagerMockRecorder) Set(arg0, arg1, arg2 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockTxManager)(nil).Set), arg0, arg1, arg2)
 }
 
-// Vacuum mocks base method.
-func (m *MockTxManager) Vacuum() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Vacuum")
-}
-
-// Vacuum indicates an expected call of Vacuum.
-func (mr *MockTxManagerMockRecorder) Vacuum() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Vacuum", reflect.TypeOf((*MockTxManager)(nil).Vacuum))
-}
-
 // MockTxFactory is a mock of TxFactory interface.
 type MockTxFactory struct {
 	ctrl     *gomock.Controller
@@ -351,17 +335,21 @@ func (m *MockTxFactory) EXPECT() *MockTxFactoryMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockTxFactory) Create(arg0 RWTable) TxObj {
+func (m *MockTxFactory) Create(arg0 ...TxOpt) TxObj {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", arg0)
+	varargs := []interface{}{}
+	for _, a := range arg0 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Create", varargs...)
 	ret0, _ := ret[0].(TxObj)
 	return ret0
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockTxFactoryMockRecorder) Create(arg0 interface{}) *gomock.Call {
+func (mr *MockTxFactoryMockRecorder) Create(arg0 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTxFactory)(nil).Create), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTxFactory)(nil).Create), arg0...)
 }
 
 // MockRWTabFactory is a mock of RWTabFactory interface.
@@ -401,31 +389,31 @@ func (mr *MockRWTabFactoryMockRecorder) Create() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockRWTabFactory)(nil).Create))
 }
 
-// MockTxAccess is a mock of TxIsolation interface.
-type MockTxAccess struct {
+// MockTxIsolation is a mock of TxIsolation interface.
+type MockTxIsolation struct {
 	ctrl     *gomock.Controller
-	recorder *MockTxAccessMockRecorder
+	recorder *MockTxIsolationMockRecorder
 }
 
-// MockTxAccessMockRecorder is the mock recorder for MockTxAccess.
-type MockTxAccessMockRecorder struct {
-	mock *MockTxAccess
+// MockTxIsolationMockRecorder is the mock recorder for MockTxIsolation.
+type MockTxIsolationMockRecorder struct {
+	mock *MockTxIsolation
 }
 
-// NewMockTxAccess creates a new mock instance.
-func NewMockTxAccess(ctrl *gomock.Controller) *MockTxAccess {
-	mock := &MockTxAccess{ctrl: ctrl}
-	mock.recorder = &MockTxAccessMockRecorder{mock}
+// NewMockTxIsolation creates a new mock instance.
+func NewMockTxIsolation(ctrl *gomock.Controller) *MockTxIsolation {
+	mock := &MockTxIsolation{ctrl: ctrl}
+	mock.recorder = &MockTxIsolationMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockTxAccess) EXPECT() *MockTxAccessMockRecorder {
+func (m *MockTxIsolation) EXPECT() *MockTxIsolationMockRecorder {
 	return m.recorder
 }
 
 // IsReadable mocks base method.
-func (m *MockTxAccess) IsReadable(originTx, txObj TxObj) bool {
+func (m *MockTxIsolation) IsReadable(originTx, txObj TxObj) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsReadable", originTx, txObj)
 	ret0, _ := ret[0].(bool)
@@ -433,23 +421,74 @@ func (m *MockTxAccess) IsReadable(originTx, txObj TxObj) bool {
 }
 
 // IsReadable indicates an expected call of IsReadable.
-func (mr *MockTxAccessMockRecorder) IsReadable(originTx, txObj interface{}) *gomock.Call {
+func (mr *MockTxIsolationMockRecorder) IsReadable(originTx, txObj interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReadable", reflect.TypeOf((*MockTxAccess)(nil).IsReadable), originTx, txObj)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReadable", reflect.TypeOf((*MockTxIsolation)(nil).IsReadable), originTx, txObj)
 }
 
-// IsWriteable mocks base method.
-func (m *MockTxAccess) IsWriteable(originTx TxObj) bool {
+// SkipLocked mocks base method.
+func (m *MockTxIsolation) SkipLocked() bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsWriteable", originTx)
+	ret := m.ctrl.Call(m, "SkipLocked")
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// IsWriteable indicates an expected call of IsWriteable.
-func (mr *MockTxAccessMockRecorder) IsWriteable(originTx interface{}) *gomock.Call {
+// SkipLocked indicates an expected call of SkipLocked.
+func (mr *MockTxIsolationMockRecorder) SkipLocked() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsWriteable", reflect.TypeOf((*MockTxAccess)(nil).IsWriteable), originTx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SkipLocked", reflect.TypeOf((*MockTxIsolation)(nil).SkipLocked))
+}
+
+// MockTxRow is a mock of TxRow interface.
+type MockTxRow struct {
+	ctrl     *gomock.Controller
+	recorder *MockTxRowMockRecorder
+}
+
+// MockTxRowMockRecorder is the mock recorder for MockTxRow.
+type MockTxRowMockRecorder struct {
+	mock *MockTxRow
+}
+
+// NewMockTxRow creates a new mock instance.
+func NewMockTxRow(ctrl *gomock.Controller) *MockTxRow {
+	mock := &MockTxRow{ctrl: ctrl}
+	mock.recorder = &MockTxRowMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTxRow) EXPECT() *MockTxRowMockRecorder {
+	return m.recorder
+}
+
+// GetTxObj mocks base method.
+func (m *MockTxRow) GetTxObj() TxObj {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTxObj")
+	ret0, _ := ret[0].(TxObj)
+	return ret0
+}
+
+// GetTxObj indicates an expected call of GetTxObj.
+func (mr *MockTxRowMockRecorder) GetTxObj() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTxObj", reflect.TypeOf((*MockTxRow)(nil).GetTxObj))
+}
+
+// GetTxRow mocks base method.
+func (m *MockTxRow) GetTxRow() Row {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTxRow")
+	ret0, _ := ret[0].(Row)
+	return ret0
+}
+
+// GetTxRow indicates an expected call of GetTxRow.
+func (mr *MockTxRowMockRecorder) GetTxRow() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTxRow", reflect.TypeOf((*MockTxRow)(nil).GetTxRow))
 }
 
 // MockRWTable is a mock of RWTable interface.
@@ -476,10 +515,10 @@ func (m *MockRWTable) EXPECT() *MockRWTableMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockRWTable) Get(arg0 Key) (Row, error) {
+func (m *MockRWTable) Get(arg0 Key) ([]TxRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
-	ret0, _ := ret[0].(Row)
+	ret0, _ := ret[0].([]TxRow)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -491,17 +530,17 @@ func (mr *MockRWTableMockRecorder) Get(arg0 interface{}) *gomock.Call {
 }
 
 // Set mocks base method.
-func (m *MockRWTable) Set(arg0 Key, arg1 Row) error {
+func (m *MockRWTable) Set(arg0 TxObj, arg1 Key, arg2 Row) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", arg0, arg1)
+	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Set indicates an expected call of Set.
-func (mr *MockRWTableMockRecorder) Set(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockRWTableMockRecorder) Set(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockRWTable)(nil).Set), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockRWTable)(nil).Set), arg0, arg1, arg2)
 }
 
 // MockROTable is a mock of ROTable interface.
@@ -699,6 +738,20 @@ func (mr *MockTxObjMockRecorder) GetID() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetID", reflect.TypeOf((*MockTxObj)(nil).GetID))
 }
 
+// GetIsolation mocks base method.
+func (m *MockTxObj) GetIsolation() TxIsolation {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIsolation")
+	ret0, _ := ret[0].(TxIsolation)
+	return ret0
+}
+
+// GetIsolation indicates an expected call of GetIsolation.
+func (mr *MockTxObjMockRecorder) GetIsolation() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIsolation", reflect.TypeOf((*MockTxObj)(nil).GetIsolation))
+}
+
 // GetState mocks base method.
 func (m *MockTxObj) GetState() TxState {
 	m.ctrl.T.Helper()
@@ -727,6 +780,34 @@ func (mr *MockTxObjMockRecorder) GetTime() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTime", reflect.TypeOf((*MockTxObj)(nil).GetTime))
 }
 
+// IsReadable mocks base method.
+func (m *MockTxObj) IsReadable() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsReadable")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsReadable indicates an expected call of IsReadable.
+func (mr *MockTxObjMockRecorder) IsReadable() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsReadable", reflect.TypeOf((*MockTxObj)(nil).IsReadable))
+}
+
+// IsWriteable mocks base method.
+func (m *MockTxObj) IsWriteable() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsWriteable")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsWriteable indicates an expected call of IsWriteable.
+func (mr *MockTxObjMockRecorder) IsWriteable() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsWriteable", reflect.TypeOf((*MockTxObj)(nil).IsWriteable))
+}
+
 // commit mocks base method.
 func (m *MockTxObj) commit() {
 	m.ctrl.T.Helper()
@@ -737,20 +818,6 @@ func (m *MockTxObj) commit() {
 func (mr *MockTxObjMockRecorder) commit() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "commit", reflect.TypeOf((*MockTxObj)(nil).commit))
-}
-
-// getTxTable mocks base method.
-func (m *MockTxObj) getTxTable() RWTable {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "getTxTable")
-	ret0, _ := ret[0].(RWTable)
-	return ret0
-}
-
-// getTxTable indicates an expected call of getTxTable.
-func (mr *MockTxObjMockRecorder) getTxTable() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getTxTable", reflect.TypeOf((*MockTxObj)(nil).getTxTable))
 }
 
 // persist mocks base method.

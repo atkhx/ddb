@@ -15,7 +15,7 @@ type Storage interface {
 	TxGet(TxObj, Key) (Row, error)
 	TxSet(TxObj, Key, Row) error
 
-	Begin(options ...txOpt) TxObj
+	Begin(options ...TxOpt) TxObj
 	Commit(TxObj) error
 	Rollback(TxObj) error
 
@@ -24,7 +24,7 @@ type Storage interface {
 }
 
 type TxManager interface {
-	Begin(options ...txOpt) TxObj
+	Begin(options ...TxOpt) TxObj
 
 	Commit(TxObj) error
 	Rollback(TxObj) error
@@ -34,7 +34,7 @@ type TxManager interface {
 }
 
 type TxFactory interface {
-	Create(RWTable, ...txOpt) TxObj
+	Create(...TxOpt) TxObj
 }
 
 type RWTabFactory interface {
@@ -42,12 +42,18 @@ type RWTabFactory interface {
 }
 
 type TxIsolation interface {
+	SkipLocked() bool
 	IsReadable(originTx, txObj TxObj) bool
 }
 
+type TxRow interface {
+	GetTxRow() Row
+	GetTxObj() TxObj
+}
+
 type RWTable interface {
-	Get(Key) (Row, error)
-	Set(Key, Row) error
+	Get(Key) ([]TxRow, error)
+	Set(TxObj, Key, Row) error
 }
 
 type ROTable interface {
@@ -69,14 +75,12 @@ type TxObj interface {
 	GetID() int64
 	GetState() TxState
 	GetTime() time.Time
-	GetOptSkipLocked() bool
 
 	IsWriteable() bool
 	IsReadable() bool
 
 	GetIsolation() TxIsolation
 
-	getTxTable() RWTable
 	commit()
 	rollback()
 	persist()

@@ -20,7 +20,7 @@ type storage struct {
 	txLocks   Locks
 }
 
-func (s *storage) Begin(options ...txOpt) TxObj {
+func (s *storage) Begin(options ...TxOpt) TxObj {
 	return s.txManager.Begin(options...)
 }
 
@@ -88,7 +88,7 @@ func (s *storage) LockKeys(txObj TxObj, keys []Key) error {
 		return err
 	}
 
-	if txObj.GetOptSkipLocked() && len(waitForUnlock) > 0 {
+	if txObj.GetIsolation().SkipLocked() && len(waitForUnlock) > 0 {
 		return errors.New("already locked")
 	}
 

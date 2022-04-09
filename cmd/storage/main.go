@@ -18,7 +18,7 @@ func main() {
 
 	txLocks := storage.NewTxLocks()
 	ssTables := storage.NewSSTables()
-	txTables := storage.NewTxManager(txFactory, rwTabFactory)
+	txTables := storage.NewTxManager(txFactory, rwTabFactory.Create())
 
 	db := storage.NewStorage(ssTables, txTables, txLocks)
 	giveFirstAmount(db)
@@ -94,7 +94,7 @@ func giveFirstAmount(db storage.Storage) {
 			return
 		}
 
-		log.Println("set account", accountId)
+		//log.Println("set account", accountId)
 	}
 }
 
@@ -121,7 +121,8 @@ func checkTotalAmount(db storage.Storage) {
 }
 
 func sendMoney(db storage.Storage, fromUser, toUser string, amount int64) {
-	tx := db.Begin(storage.ReadCommitted())
+	tx := db.Begin()
+	//tx := db.Begin(storage.ReadCommitted())
 	//tx := db.Begin(storage.RepeatableRead())
 	var err error
 	defer func() {
@@ -139,9 +140,9 @@ func sendMoney(db storage.Storage, fromUser, toUser string, amount int64) {
 		}
 	}()
 
-	if err = db.LockKeys(tx, []storage.Key{getAccountId(fromUser), getAccountId(toUser)}); err != nil {
-		return
-	}
+	//if err = db.LockKeys(tx, []storage.Key{getAccountId(fromUser), getAccountId(toUser)}); err != nil {
+	//	return
+	//}
 
 	accountFrom, err := getAccount(db, tx, fromUser)
 	if err != nil {

@@ -11,16 +11,20 @@ func NewRepeatableRead() *txRepeatableRead {
 
 type txRepeatableRead struct{}
 
-func (a *txRepeatableRead) IsReadable(originTx, txObj TxObj) bool {
-	if originTx.GetID() > txObj.GetID() {
+func (a *txRepeatableRead) SkipLocked() bool {
+	return true
+}
+
+func (a *txRepeatableRead) IsReadable(rowTx, curTx TxObj) bool {
+	if rowTx.GetID() > curTx.GetID() {
 		return false
 	}
 
-	if originTx.GetID() == txObj.GetID() {
-		return originTx.GetState() != TxRolledBack
+	if rowTx.GetID() == curTx.GetID() {
+		return rowTx.GetState() != TxRolledBack
 	}
 
-	return originTx.GetState() == TxCommitted && originTx.GetTime().Before(txObj.GetTime())
+	return rowTx.GetState() == TxCommitted && rowTx.GetTime().Before(curTx.GetTime())
 }
 
 func NewReadCommitted() *txAccessReadCommitted {
@@ -29,10 +33,14 @@ func NewReadCommitted() *txAccessReadCommitted {
 
 type txAccessReadCommitted struct{}
 
-func (a *txAccessReadCommitted) IsReadable(originTx, txObj TxObj) bool {
-	if originTx.GetID() == txObj.GetID() {
-		return originTx.GetState() != TxRolledBack
+func (a *txAccessReadCommitted) SkipLocked() bool {
+	return false
+}
+
+func (a *txAccessReadCommitted) IsReadable(rowTx, curTx TxObj) bool {
+	if rowTx.GetID() == curTx.GetID() {
+		return rowTx.GetState() != TxRolledBack
 	}
 
-	return originTx.GetState() == TxCommitted
+	return rowTx.GetState() == TxCommitted
 }

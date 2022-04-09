@@ -12,38 +12,38 @@ func TestStorage_Begin(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	txID := int64(123)
+	txObj := NewTxObj(1)
 
-	txTables := NewMockTxTables(ctrl)
-	txTables.EXPECT().Begin().Return(txID)
+	txManager := NewMockTxManager(ctrl)
+	txManager.EXPECT().Begin().Return(txObj)
 
 	txLocks := NewMockLocks(ctrl)
-	storage := NewStorage(NewMockROTables(ctrl), txTables, txLocks)
-	assert.Equal(t, txID, storage.Begin())
+	storage := NewStorage(NewMockROTables(ctrl), txManager, txLocks)
+	assert.Equal(t, txObj, storage.Begin())
 }
 
 func TestStorage_Commit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	txID := int64(123)
+	txObj := NewTxObj(1)
 
-	txTables := NewMockTxTables(ctrl)
+	txManager := NewMockTxManager(ctrl)
 	txLocks := NewMockLocks(ctrl)
-	storage := NewStorage(NewMockROTables(ctrl), txTables, txLocks)
+	storage := NewStorage(NewMockROTables(ctrl), txManager, txLocks)
 
 	t.Run("success", func(t *testing.T) {
-		txTables.EXPECT().Commit(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
-		assert.NoError(t, storage.Commit(txID))
+		txManager.EXPECT().Commit(txObj).Return(nil)
+		txLocks.EXPECT().Release(txObj.GetID())
+		assert.NoError(t, storage.Commit(txObj))
 	})
 
 	t.Run("fail", func(t *testing.T) {
 		originErr := errors.New("some error")
-		txTables.EXPECT().Commit(txID).Return(originErr)
-		txLocks.EXPECT().Release(txID)
+		txManager.EXPECT().Commit(txObj).Return(originErr)
+		txLocks.EXPECT().Release(txObj.GetID())
 
-		actualErr := storage.Commit(txID)
+		actualErr := storage.Commit(txObj)
 
 		assert.Error(t, actualErr)
 		assert.Equal(t, originErr, actualErr)
@@ -54,24 +54,24 @@ func TestStorage_Rollback(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	txID := int64(123)
+	txObj := NewTxObj(1)
 
-	txTables := NewMockTxTables(ctrl)
+	txManager := NewMockTxManager(ctrl)
 	txLocks := NewMockLocks(ctrl)
-	storage := NewStorage(NewMockROTables(ctrl), txTables, txLocks)
+	storage := NewStorage(NewMockROTables(ctrl), txManager, txLocks)
 
 	t.Run("success", func(t *testing.T) {
-		txTables.EXPECT().Rollback(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
-		assert.NoError(t, storage.Rollback(txID))
+		txManager.EXPECT().Rollback(txObj).Return(nil)
+		txLocks.EXPECT().Release(txObj.GetID())
+		assert.NoError(t, storage.Rollback(txObj))
 	})
 
 	t.Run("fail", func(t *testing.T) {
 		originErr := errors.New("some error")
-		txTables.EXPECT().Rollback(txID).Return(originErr)
-		txLocks.EXPECT().Release(txID)
+		txManager.EXPECT().Rollback(txObj).Return(originErr)
+		txLocks.EXPECT().Release(txObj.GetID())
 
-		actualErr := storage.Rollback(txID)
+		actualErr := storage.Rollback(txObj)
 
 		assert.Error(t, actualErr)
 		assert.Equal(t, originErr, actualErr)
@@ -82,17 +82,17 @@ func TestStorage_Get(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	txTables := NewMockTxTables(ctrl)
+	txManager := NewMockTxManager(ctrl)
 	roTables := NewMockROTables(ctrl)
 	txLocks := NewMockLocks(ctrl)
-	storage := NewStorage(roTables, txTables, txLocks)
+	storage := NewStorage(roTables, txManager, txLocks)
 
 	t.Run("not found", func(t *testing.T) {
-		txID := int64(123)
-		txTables.EXPECT().Begin().Return(txID)
-		txTables.EXPECT().Get(txID, 123).Return(nil, nil)
-		txTables.EXPECT().Rollback(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
+		txObj := NewTxObj(1)
+		txManager.EXPECT().Begin().Return(txObj)
+		txManager.EXPECT().Get(txObj, 123).Return(nil, nil)
+		txManager.EXPECT().Rollback(txObj).Return(nil)
+		txLocks.EXPECT().Release(txObj.GetID())
 
 		roTables.EXPECT().Get(123).Return(nil, nil)
 
@@ -102,12 +102,12 @@ func TestStorage_Get(t *testing.T) {
 	})
 
 	t.Run("error on rotables read", func(t *testing.T) {
-		txID := int64(123)
+		txObj := NewTxObj(123)
 		originErr := errors.New("some error")
-		txTables.EXPECT().Begin().Return(txID)
-		txTables.EXPECT().Get(txID, 123).Return(nil, nil)
-		txTables.EXPECT().Rollback(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
+		txManager.EXPECT().Begin().Return(txObj)
+		txManager.EXPECT().Get(txObj, 123).Return(nil, nil)
+		txManager.EXPECT().Rollback(txObj).Return(nil)
+		txLocks.EXPECT().Release(txObj.GetID())
 
 		roTables.EXPECT().Get(123).Return(nil, originErr)
 
@@ -117,13 +117,13 @@ func TestStorage_Get(t *testing.T) {
 		assert.Equal(t, originErr, err)
 	})
 
-	t.Run("error on txtables read", func(t *testing.T) {
-		txID := int64(123)
+	t.Run("error on txManager read", func(t *testing.T) {
+		txObj := NewTxObj(1)
 		originErr := errors.New("some error")
-		txTables.EXPECT().Begin().Return(txID)
-		txTables.EXPECT().Get(txID, 123).Return(nil, originErr)
-		txTables.EXPECT().Rollback(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
+		txManager.EXPECT().Begin().Return(txObj)
+		txManager.EXPECT().Get(txObj, 123).Return(nil, originErr)
+		txManager.EXPECT().Rollback(txObj).Return(nil)
+		txLocks.EXPECT().Release(txObj.GetID())
 
 		row, err := storage.Get(123)
 		assert.Nil(t, row)
@@ -132,11 +132,11 @@ func TestStorage_Get(t *testing.T) {
 	})
 
 	t.Run("found in rotables read", func(t *testing.T) {
-		txID := int64(123)
-		txTables.EXPECT().Begin().Return(txID)
-		txTables.EXPECT().Get(txID, 123).Return(nil, nil)
-		txTables.EXPECT().Rollback(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
+		txObj := NewTxObj(1)
+		txManager.EXPECT().Begin().Return(txObj)
+		txManager.EXPECT().Get(txObj, 123).Return(nil, nil)
+		txManager.EXPECT().Rollback(txObj).Return(nil)
+		txLocks.EXPECT().Release(txObj.GetID())
 
 		roTables.EXPECT().Get(123).Return("some value", nil)
 
@@ -145,12 +145,12 @@ func TestStorage_Get(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("found in txtables read", func(t *testing.T) {
-		txID := int64(123)
-		txTables.EXPECT().Begin().Return(txID)
-		txTables.EXPECT().Get(txID, 123).Return("some value", nil)
-		txTables.EXPECT().Rollback(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
+	t.Run("found in txManager read", func(t *testing.T) {
+		txObj := NewTxObj(123)
+		txManager.EXPECT().Begin().Return(txObj)
+		txManager.EXPECT().Get(txObj, 123).Return("some value", nil)
+		txManager.EXPECT().Rollback(txObj).Return(nil)
+		txLocks.EXPECT().Release(txObj.GetID())
 
 		row, err := storage.Get(123)
 		assert.Equal(t, "some value", row)
@@ -162,28 +162,30 @@ func TestStorage_Set(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	txTables := NewMockTxTables(ctrl)
+	txManager := NewMockTxManager(ctrl)
 	txLocks := NewMockLocks(ctrl)
-	storage := NewStorage(NewMockROTables(ctrl), txTables, txLocks)
+	storage := NewStorage(NewMockROTables(ctrl), txManager, txLocks)
 
 	t.Run("success", func(t *testing.T) {
-		txID := int64(3)
-		txTables.EXPECT().Begin().Return(txID)
-		txTables.EXPECT().Set(txID, 123, "some value").Return(nil)
-		txTables.EXPECT().Commit(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
+		txObj := NewTxObj(1)
+		txManager.EXPECT().Begin().Return(txObj)
+		txManager.EXPECT().Set(txObj, 123, "some value").Return(nil)
+		txManager.EXPECT().Commit(txObj).Return(nil)
+		txLocks.EXPECT().InitLocks(txObj.GetID(), 123)
+		txLocks.EXPECT().Release(txObj.GetID())
 
 		err := storage.Set(123, "some value")
 		assert.NoError(t, err)
 	})
 
 	t.Run("fail", func(t *testing.T) {
-		txID := int64(3)
+		txObj := NewTxObj(1)
 		originErr := errors.New("some error")
-		txTables.EXPECT().Begin().Return(txID)
-		txTables.EXPECT().Set(txID, 123, "some value").Return(originErr)
-		txTables.EXPECT().Rollback(txID).Return(nil)
-		txLocks.EXPECT().Release(txID)
+		txManager.EXPECT().Begin().Return(txObj)
+		txManager.EXPECT().Set(txObj, 123, "some value").Return(originErr)
+		txManager.EXPECT().Rollback(txObj).Return(nil)
+		txLocks.EXPECT().InitLocks(txObj.GetID(), 123)
+		txLocks.EXPECT().Release(txObj.GetID())
 
 		err := storage.Set(123, "some value")
 		assert.Error(t, err)

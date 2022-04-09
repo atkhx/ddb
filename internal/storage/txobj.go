@@ -8,6 +8,8 @@ import (
 
 type TxState int
 
+var defaultTxOpts = []TxOpt{ReadCommitted()}
+
 const (
 	TxUncommitted TxState = iota
 	TxRolledBack
@@ -15,11 +17,13 @@ const (
 	TxPersisted
 )
 
-func NewTxObj(txID int64, txTable RWTable, options ...txOpt) *txObj {
+func NewTxObj(txID int64, options ...TxOpt) *txObj {
 	res := &txObj{txID: txID}
 	res.setState(TxUncommitted)
-	res.txTable = txTable
-	ReadCommitted()(res)
+
+	for _, opt := range defaultTxOpts {
+		opt(res)
+	}
 
 	for _, opt := range options {
 		opt(res)
@@ -32,11 +36,8 @@ type txObj struct {
 	txID    int64
 	txTime  time.Time
 	txState TxState
-	txTable RWTable
 
 	txIsolation TxIsolation
-
-	skipLocked bool
 }
 
 func (tx *txObj) GetID() int64 {
@@ -49,10 +50,6 @@ func (tx *txObj) GetState() TxState {
 
 func (tx *txObj) GetTime() time.Time {
 	return tx.txTime
-}
-
-func (tx *txObj) GetOptSkipLocked() bool {
-	return tx.skipLocked
 }
 
 func (tx *txObj) IsWriteable() bool {
@@ -70,10 +67,6 @@ func (tx *txObj) GetIsolation() TxIsolation {
 func (tx *txObj) setState(state TxState) {
 	tx.txState = state
 	tx.txTime = localtime.Now()
-}
-
-func (tx *txObj) getTxTable() RWTable {
-	return tx.txTable
 }
 
 func (tx *txObj) commit() {

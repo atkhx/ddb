@@ -2,51 +2,32 @@ package storage
 
 import (
 	"errors"
-	"sync"
 )
 
 var ErrNoWriteableTransaction = errors.New("no writeable txObj")
 
 func NewTxManager(
 	txFactory TxFactory,
-	tabFactory RWTabFactory,
+	txTable RWTable,
 ) *txManager {
 	return &txManager{
-		txFactory:  txFactory,
-		tabFactory: tabFactory,
+		txFactory: txFactory,
+		txTable:   txTable,
 	}
 }
 
-type txChain struct {
-	txObj TxObj
-	next  *txChain
-	prev  *txChain
-}
-
 type txManager struct {
-	sync.RWMutex
-	txChain *txChain
-
-	txFactory  TxFactory
-	tabFactory RWTabFactory
+	txTable   RWTable
+	txFactory TxFactory
 }
 
-func (tt *txManager) Begin(options ...txOpt) TxObj {
-	return tt.txFactory.Create(tt.tabFactory.Create(), options...)
+func (tt *txManager) Begin(options ...TxOpt) TxObj {
+	return tt.txFactory.Create(options...)
 }
 
 func (tt *txManager) Commit(txObj TxObj) error {
 	if txObj.IsWriteable() {
-		tt.Lock()
 		txObj.commit()
-
-		if tt.txChain == nil {
-			tt.txChain = &txChain{txObj: txObj}
-		} else {
-			tt.txChain.next = &txChain{txObj: txObj, prev: tt.txChain}
-			tt.txChain = tt.txChain.next
-		}
-		tt.Unlock()
 		return nil
 	}
 	return ErrNoWriteableTransaction
@@ -60,41 +41,28 @@ func (tt *txManager) Rollback(txObj TxObj) error {
 	return ErrNoWriteableTransaction
 }
 
-func (tt *txManager) IterateReadable(txObj TxObj, fn func(TxObj, RWTable) bool) {
-	if fn(txObj, txObj.getTxTable()) {
-		return
-	}
-
-	txt := tt.txChain
-	for txt != nil {
-		if fn(txt.txObj, txt.txObj.getTxTable()) {
-			return
-		}
-		txt = txt.prev
-	}
-	return
-}
-
 func (tt *txManager) Get(txObj TxObj, key Key) (row Row, err error) {
-	tt.IterateReadable(txObj, func(txt TxObj, table RWTable) bool {
-		row, err = table.Get(key)
-		if err != nil {
-			return true
+	txRows, err := tt.txTable.Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	if txRows == nil {
+		return nil, nil
+	}
+
+	for i := len(txRows); i > 0; i-- {
+		if txObj.GetIsolation().IsReadable(txRows[i-1].GetTxObj(), txObj) {
+			return txRows[i-1].GetTxRow(), nil
 		}
-		if row == nil {
-			return false
-		}
-		if !txObj.GetIsolation().IsReadable(txt, txObj) {
-			err = errors.New("row is not readable")
-		}
-		return true
-	})
-	return
+	}
+
+	return nil, errors.New("row is not readable")
 }
 
 func (tt *txManager) Set(txObj TxObj, key Key, row Row) error {
 	if txObj.IsWriteable() {
-		return txObj.getTxTable().Set(key, row)
+		return tt.txTable.Set(txObj, key, row)
 	}
 	return ErrNoWriteableTransaction
 }
