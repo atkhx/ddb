@@ -20,15 +20,12 @@ func main() {
 	ssTables := storage.NewSSTables()
 	txTables := storage.NewTxManager(txFactory, rwTabFactory)
 
-	//go scheduleVacuum(10*time.Millisecond, txTables)
-	//go schedulePersister(100*time.Millisecond, txTables, ssTables)
-
 	db := storage.NewStorage(ssTables, txTables, txLocks)
 	giveFirstAmount(db)
 
 	wg := sync.WaitGroup{}
 	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < 5000; i++ {
+	for i := 0; i < 10000; i++ {
 		userFrom := users[rand.Intn(len(users))]
 		userTo := users[rand.Intn(len(users))]
 
@@ -124,20 +121,27 @@ func checkTotalAmount(db storage.Storage) {
 }
 
 func sendMoney(db storage.Storage, fromUser, toUser string, amount int64) {
-	tx := db.Begin()
+	tx := db.Begin(storage.ReadCommitted())
+	//tx := db.Begin(storage.RepeatableRead())
 	var err error
 	defer func() {
 		if err != nil {
 			if err.Error() != "account FROM has no money" {
 				log.Println("transaction", tx, "failed with error", err)
 			}
-			log.Println("rollback transaction", tx, db.Rollback(tx), err)
+			if err := db.Rollback(tx); err != nil {
+				log.Println("rollback transaction", tx, err)
+			}
 		} else {
 			if err := db.Commit(tx); err != nil {
 				log.Println("commit transaction failed", err)
 			}
 		}
 	}()
+
+	if err = db.LockKeys(tx, []storage.Key{getAccountId(fromUser), getAccountId(toUser)}); err != nil {
+		return
+	}
 
 	accountFrom, err := getAccount(db, tx, fromUser)
 	if err != nil {
@@ -167,34 +171,5 @@ func sendMoney(db storage.Storage, fromUser, toUser string, amount int64) {
 	if err = db.TxSet(tx, getAccountId(fromUser), accountFrom); err != nil {
 		err = errors.Wrap(err, "save account FROM failed")
 		return
-	}
-}
-
-func scheduleVacuum(delay time.Duration, txTables storage.TxManager) {
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-
-	for {
-		select {
-		case <-timer.C:
-			txTables.Vacuum()
-			timer.Reset(delay)
-		}
-	}
-}
-
-func schedulePersister(delay time.Duration, txTables storage.TxManager, ssTables storage.ROTables) {
-	timer := time.NewTimer(delay)
-	defer timer.Stop()
-
-	for {
-		select {
-		case <-timer.C:
-			txTables.Persist(func(table storage.RWTable) error {
-				ssTables.Grow(table)
-				return nil
-			})
-			timer.Reset(delay)
-		}
 	}
 }

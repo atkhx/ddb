@@ -60,45 +60,14 @@ func (tt *txManager) Rollback(txObj TxObj) error {
 	return ErrNoWriteableTransaction
 }
 
-func (tt *txManager) Persist(persistFn func(RWTable) error) {
-	tt.RLock()
-	defer tt.RUnlock()
-	//
-	//var chain = tt.txChain
-	//for chain != nil {
-	//	if chain.txObj.GetState() == TxCommitted {
-	//		if err := persistFn(chain.table); err != nil {
-	//			break
-	//		}
-	//		chain.txObj.persist()
-	//	}
-	//	chain = chain.Next
-	//}
-}
-
-func (tt *txManager) Vacuum() {
-	tt.Lock()
-	defer tt.Unlock()
-	//
-	//var tables []txTable
-	//for _, txTable := range tt.tables {
-	//	if txTable.txObj.GetState() == TxRolledBack || txTable.txObj.GetState() == TxPersisted {
-	//		continue
-	//	}
-	//	tables = append(tables, txTable)
-	//}
-	//
-	//tt.tables = tables
-}
-
-func (tt *txManager) IterateReadable(txObj TxObj, fn func(RWTable) bool) {
-	if txObj.IsReadable() && fn(txObj.getTxTable()) {
+func (tt *txManager) IterateReadable(txObj TxObj, fn func(TxObj, RWTable) bool) {
+	if fn(txObj, txObj.getTxTable()) {
 		return
 	}
 
 	txt := tt.txChain
 	for txt != nil {
-		if txObj.GetIsolation().IsReadable(txt.txObj, txObj) && fn(txt.txObj.getTxTable()) {
+		if fn(txt.txObj, txt.txObj.getTxTable()) {
 			return
 		}
 		txt = txt.prev
@@ -107,9 +76,18 @@ func (tt *txManager) IterateReadable(txObj TxObj, fn func(RWTable) bool) {
 }
 
 func (tt *txManager) Get(txObj TxObj, key Key) (row Row, err error) {
-	tt.IterateReadable(txObj, func(table RWTable) bool {
+	tt.IterateReadable(txObj, func(txt TxObj, table RWTable) bool {
 		row, err = table.Get(key)
-		return row != nil || err != nil
+		if err != nil {
+			return true
+		}
+		if row == nil {
+			return false
+		}
+		if !txObj.GetIsolation().IsReadable(txt, txObj) {
+			err = errors.New("row is not readable")
+		}
+		return true
 	})
 	return
 }

@@ -19,7 +19,7 @@ func NewTxObj(txID int64, txTable RWTable, options ...txOpt) *txObj {
 	res := &txObj{txID: txID}
 	res.setState(TxUncommitted)
 	res.txTable = txTable
-	res.txIsolation = ReadCommitted
+	ReadCommitted()(res)
 
 	for _, opt := range options {
 		opt(res)

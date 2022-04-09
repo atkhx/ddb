@@ -1,17 +1,17 @@
 package storage
 
 var (
-	ReadCommitted  = NewReadCommitted()
-	RepeatableRead = NewRepeatableRead()
+	readCommitted  = NewReadCommitted()
+	repeatableRead = NewRepeatableRead()
 )
 
-func NewRepeatableRead() *txRepeateableRead {
-	return &txRepeateableRead{}
+func NewRepeatableRead() *txRepeatableRead {
+	return &txRepeatableRead{}
 }
 
-type txRepeateableRead struct{}
+type txRepeatableRead struct{}
 
-func (a *txRepeateableRead) IsReadable(originTx, txObj TxObj) bool {
+func (a *txRepeatableRead) IsReadable(originTx, txObj TxObj) bool {
 	if originTx.GetID() > txObj.GetID() {
 		return false
 	}

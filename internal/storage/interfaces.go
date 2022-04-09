@@ -31,9 +31,6 @@ type TxManager interface {
 
 	Get(TxObj, Key) (Row, error)
 	Set(TxObj, Key, Row) error
-
-	Vacuum()
-	Persist(func(RWTable) error)
 }
 
 type TxFactory interface {
