@@ -4,17 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/atkhx/ddb/internal"
 )
 
 var ErrDeadLock = errors.New("deadlock")
 
 type waitChan chan bool
 
-func NewTxLockWithWait(txID int64, key Key) *txLock {
+func NewTxLockWithWait(txID int64, key internal.Key) *txLock {
 	return NewTxLock(txID, key, make(waitChan, 2))
 }
 
-func NewTxLock(txID int64, key Key, wait waitChan) *txLock {
+func NewTxLock(txID int64, key internal.Key, wait waitChan) *txLock {
 	return &txLock{
 		wait: wait,
 		txID: txID,
@@ -25,7 +27,7 @@ func NewTxLock(txID int64, key Key, wait waitChan) *txLock {
 type txLock struct {
 	wait chan bool
 	txID int64
-	key  Key
+	key  internal.Key
 }
 
 func (l *txLock) String() string {
@@ -35,24 +37,24 @@ func (l *txLock) String() string {
 func NewTxLocks() *txLocks {
 	return &txLocks{
 		locksByTx:  map[int64][]*txLock{},
-		locksQueue: map[Key][]*txLock{},
+		locksQueue: map[internal.Key][]*txLock{},
 	}
 }
 
 type txLocks struct {
 	sync.RWMutex
 	locksByTx  map[int64][]*txLock
-	locksQueue map[Key][]*txLock
+	locksQueue map[internal.Key][]*txLock
 }
 
-func (l *txLocks) InitLock(txID int64, key Key) (waitChan, error) {
+func (l *txLocks) InitLock(txID int64, key internal.Key) (waitChan, error) {
 	l.Lock()
 	defer l.Unlock()
 
 	return l.lockKey(txID, key)
 }
 
-func (l *txLocks) InitLocks(txID int64, keys ...Key) ([]waitChan, error) {
+func (l *txLocks) InitLocks(txID int64, keys ...internal.Key) ([]waitChan, error) {
 	l.Lock()
 	defer l.Unlock()
 
@@ -72,7 +74,7 @@ func (l *txLocks) InitLocks(txID int64, keys ...Key) ([]waitChan, error) {
 	return waitChans, nil
 }
 
-func (l *txLocks) lockKey(txID int64, key Key) (waitChan, error) {
+func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 	locks := l.locksQueue[key]
 	if len(locks) > 0 {
 		// исключаем самоблок по ключу
@@ -83,7 +85,7 @@ func (l *txLocks) lockKey(txID int64, key Key) (waitChan, error) {
 		}
 
 		for _, currentTxLocker := range locks {
-			if err := l.isTxBlocksTargetByKeys(txID, currentTxLocker.txID, map[Key]Key{}); err != nil {
+			if err := l.isTxBlocksTargetByKeys(txID, currentTxLocker.txID, map[internal.Key]internal.Key{}); err != nil {
 				return nil, err
 			}
 		}
@@ -100,7 +102,7 @@ func (l *txLocks) lockKey(txID int64, key Key) (waitChan, error) {
 	return nil, nil
 }
 
-func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKeys map[Key]Key) error {
+func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKeys map[internal.Key]internal.Key) error {
 	checkLocks := l.locksByTx[txID]
 	for _, checkLock := range checkLocks {
 		if _, ok := skipKeys[checkLock.key]; ok {
@@ -124,7 +126,7 @@ func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKeys map[Key]
 
 			// проверяем вторичную блокировку
 			// мы залочили targetLock.txID, а она могла залочить целевую
-			if err := l.isTxBlocksTargetByKeys(targetLock.txID, targetTx, map[Key]Key{checkLock.key: checkLock.key}); err != nil {
+			if err := l.isTxBlocksTargetByKeys(targetLock.txID, targetTx, map[internal.Key]internal.Key{checkLock.key: checkLock.key}); err != nil {
 				return err
 			}
 		}
@@ -132,7 +134,7 @@ func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKeys map[Key]
 	return nil
 }
 
-func (l *txLocks) getTxInQueueByKey(txID int64, key Key) (int, *txLock) {
+func (l *txLocks) getTxInQueueByKey(txID int64, key internal.Key) (int, *txLock) {
 	for i := 0; i < len(l.locksQueue[key]); i++ {
 		if l.locksQueue[key][i].txID == txID {
 			return i, l.locksQueue[key][i]

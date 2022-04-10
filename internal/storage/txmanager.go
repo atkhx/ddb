@@ -2,6 +2,8 @@ package storage
 
 import (
 	"errors"
+
+	"github.com/atkhx/ddb/internal"
 )
 
 var ErrNoWriteableTransaction = errors.New("no writeable txObj")
@@ -41,7 +43,7 @@ func (tt *txManager) Rollback(txObj TxObj) error {
 	return ErrNoWriteableTransaction
 }
 
-func (tt *txManager) Get(txObj TxObj, key Key) (row Row, err error) {
+func (tt *txManager) Get(txObj TxObj, key internal.Key) (row internal.Row, err error) {
 	txRows, err := tt.txTable.Get(key)
 	if err != nil {
 		return nil, err
@@ -60,7 +62,7 @@ func (tt *txManager) Get(txObj TxObj, key Key) (row Row, err error) {
 	return nil, errors.New("row is not readable")
 }
 
-func (tt *txManager) Set(txObj TxObj, key Key, row Row) error {
+func (tt *txManager) Set(txObj TxObj, key internal.Key, row internal.Row) error {
 	if txObj.IsWriteable() {
 		return tt.txTable.Set(txObj, key, row)
 	}

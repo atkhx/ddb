@@ -3,18 +3,19 @@ package storage
 import (
 	"testing"
 
+	"github.com/atkhx/ddb/internal"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
-func assertSuccessLockWithoutWait(t *testing.T, locks *txLocks, tx TxObj, key Key) {
+func assertSuccessLockWithoutWait(t *testing.T, locks *txLocks, tx TxObj, key internal.Key) {
 	t.Helper()
 	c, err := locks.InitLock(tx.GetID(), key)
 	assert.Nil(t, c)
 	assert.NoError(t, err)
 }
 
-func assertSuccessLockWithWaitChan(t *testing.T, locks *txLocks, tx TxObj, key Key) waitChan {
+func assertSuccessLockWithWaitChan(t *testing.T, locks *txLocks, tx TxObj, key internal.Key) waitChan {
 	t.Helper()
 	c, err := locks.InitLock(tx.GetID(), key)
 	assert.NotNil(t, c)
@@ -22,7 +23,7 @@ func assertSuccessLockWithWaitChan(t *testing.T, locks *txLocks, tx TxObj, key K
 	return c
 }
 
-func assertLockWithDeadlockError(t *testing.T, locks *txLocks, tx TxObj, key Key) {
+func assertLockWithDeadlockError(t *testing.T, locks *txLocks, tx TxObj, key internal.Key) {
 	t.Helper()
 	c, err := locks.InitLock(tx.GetID(), key)
 	assert.Nil(t, c)

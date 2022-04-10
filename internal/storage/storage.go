@@ -1,6 +1,10 @@
 package storage
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/atkhx/ddb/internal"
+)
 
 func NewStorage(
 	roTables ROTables,
@@ -34,7 +38,7 @@ func (s *storage) Rollback(txObj TxObj) error {
 	return s.txManager.Rollback(txObj)
 }
 
-func (s *storage) Get(key Key) (Row, error) {
+func (s *storage) Get(key internal.Key) (internal.Row, error) {
 	txObj := s.Begin()
 	defer func() {
 		_ = s.Rollback(txObj)
@@ -42,7 +46,7 @@ func (s *storage) Get(key Key) (Row, error) {
 	return s.TxGet(txObj, key)
 }
 
-func (s *storage) Set(key Key, row Row) error {
+func (s *storage) Set(key internal.Key, row internal.Row) error {
 	txObj := s.Begin()
 	if err := s.TxSet(txObj, key, row); err != nil {
 		defer func() {
@@ -53,7 +57,7 @@ func (s *storage) Set(key Key, row Row) error {
 	return s.Commit(txObj)
 }
 
-func (s *storage) TxGet(txObj TxObj, key Key) (Row, error) {
+func (s *storage) TxGet(txObj TxObj, key internal.Key) (internal.Row, error) {
 	row, err := s.txManager.Get(txObj, key)
 	if err != nil || row != nil {
 		return row, err
@@ -61,15 +65,15 @@ func (s *storage) TxGet(txObj TxObj, key Key) (Row, error) {
 	return s.roTables.Get(key)
 }
 
-func (s *storage) TxSet(txObj TxObj, key Key, row Row) error {
-	if err := s.LockKeys(txObj, []Key{key}); err != nil {
+func (s *storage) TxSet(txObj TxObj, key internal.Key, row internal.Row) error {
+	if err := s.LockKeys(txObj, []internal.Key{key}); err != nil {
 		return err
 	}
 	return s.txManager.Set(txObj, key, row)
 }
 
-func (s *storage) TxGetForUpdate(txObj TxObj, key Key) (Row, error) {
-	if err := s.LockKeys(txObj, []Key{key}); err != nil {
+func (s *storage) TxGetForUpdate(txObj TxObj, key internal.Key) (internal.Row, error) {
+	if err := s.LockKeys(txObj, []internal.Key{key}); err != nil {
 		return nil, err
 	}
 
@@ -82,7 +86,7 @@ func (s *storage) TxGetForUpdate(txObj TxObj, key Key) (Row, error) {
 	return row, err
 }
 
-func (s *storage) LockKeys(txObj TxObj, keys []Key) error {
+func (s *storage) LockKeys(txObj TxObj, keys []internal.Key) error {
 	waitForUnlock, err := s.txLocks.InitLocks(txObj.GetID(), keys...)
 	if err != nil {
 		return err

@@ -4,28 +4,43 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"sync"
 	"time"
 
+	"github.com/atkhx/ddb/internal/keys"
 	"github.com/atkhx/ddb/internal/storage"
-	"github.com/atkhx/ddb/internal/storage/rwtablemap"
+	"github.com/atkhx/ddb/internal/storage/rwtablebptree"
 	"github.com/pkg/errors"
 )
 
 func main() {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	txFactory := storage.NewTxFactory(0)
-	rwTabFactory := rwtablemap.NewFactory()
+	//rwTabFactory := rwtablemap.NewFactory()
+	//rwTable := rwTabFactory.Create()
+	rwTabFactory := rwtablebptree.NewFactory()
+	rwTable := rwTabFactory.Create(100)
+
+	//rwTable := bptree.NewTree(3)
 
 	txLocks := storage.NewTxLocks()
 	ssTables := storage.NewSSTables()
-	txTables := storage.NewTxManager(txFactory, rwTabFactory.Create())
+	txTables := storage.NewTxManager(txFactory, rwTable)
 
 	db := storage.NewStorage(ssTables, txTables, txLocks)
 	giveFirstAmount(db)
 
 	wg := sync.WaitGroup{}
 	rand.Seed(time.Now().UnixNano())
-	for i := 0; i < 10000; i++ {
+	var timeAvg time.Duration
+	var timeAll time.Duration
+
+	for i := 0; i < 50000; i++ {
 		userFrom := users[rand.Intn(len(users))]
 		userTo := users[rand.Intn(len(users))]
 
@@ -38,17 +53,24 @@ func main() {
 			defer wg.Done()
 			t := time.Now()
 			defer func() {
-				log.Println("time to tx", time.Now().Sub(t), "from", userFrom, "to", userTo)
+				duration := time.Now().Sub(t)
+				timeAvg += duration
+				timeAll += duration
+
+				log.Println("time to tx", duration, "from", userFrom, "to", userTo)
 			}()
 			sendMoney(db, userFrom, userTo, int64(10+rand.Intn(90)))
 		}()
 	}
 	wg.Wait()
 
+	log.Println("timeAvg  ", timeAvg/50000)
+	log.Println("timeAll  ", timeAll)
+
 	checkTotalAmount(db)
 }
 
-var users = makeUsers(10000)
+var users = makeUsers(5000)
 
 type account struct {
 	amount int64
@@ -61,8 +83,8 @@ func makeUsers(count int) (res []string) {
 	return
 }
 
-func getAccountId(user string) string {
-	return fmt.Sprintf("account_%s", user)
+func getAccountId(user string) keys.StrKey {
+	return keys.StrKey(fmt.Sprintf("account_%s", user))
 }
 
 func getAccount(db storage.Storage, tx storage.TxObj, user string) (account, error) {
@@ -72,7 +94,7 @@ func getAccount(db storage.Storage, tx storage.TxObj, user string) (account, err
 	if err != nil {
 		return account{}, errors.Wrap(err, fmt.Sprintf("get account failed %d %s", tx, accountId))
 	} else if accountRow == nil {
-		return account{}, errors.New("account not found " + accountId)
+		return account{}, errors.New("account not found " + accountId.String())
 	}
 
 	result, ok := accountRow.(account)
@@ -109,7 +131,7 @@ func checkTotalAmount(db storage.Storage) {
 
 		account, ok := accountRow.(account)
 		if !ok {
-			log.Println("invalid account type")
+			log.Println("invalid account type 1")
 			return
 		}
 
@@ -127,9 +149,9 @@ func sendMoney(db storage.Storage, fromUser, toUser string, amount int64) {
 	var err error
 	defer func() {
 		if err != nil {
-			if err.Error() != "account FROM has no money" {
-				log.Println("transaction", tx, "failed with error", err)
-			}
+			//if err.Error() != "account FROM has no money" {
+			//	log.Println("transaction", tx, "failed with error", err)
+			//}
 			if err := db.Rollback(tx); err != nil {
 				log.Println("rollback transaction", tx, err)
 			}
@@ -140,7 +162,7 @@ func sendMoney(db storage.Storage, fromUser, toUser string, amount int64) {
 		}
 	}()
 
-	//if err = db.LockKeys(tx, []storage.Key{getAccountId(fromUser), getAccountId(toUser)}); err != nil {
+	//if err = db.LockKeys(tx, []internal.Key{getAccountId(fromUser), getAccountId(toUser)}); err != nil {
 	//	return
 	//}
 

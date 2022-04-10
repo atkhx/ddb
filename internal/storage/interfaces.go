@@ -1,26 +1,24 @@
 //go:generate mockgen -package=$GOPACKAGE -source=$GOFILE -destination=interfaces_mocks.go
 package storage
 
-import "time"
+import (
+	"time"
 
-type Key interface {
-}
-
-type Row interface {
-}
+	"github.com/atkhx/ddb/internal"
+)
 
 type Storage interface {
-	Get(Key) (Row, error)
-	Set(key Key, row Row) error
-	TxGet(TxObj, Key) (Row, error)
-	TxSet(TxObj, Key, Row) error
+	Get(internal.Key) (internal.Row, error)
+	Set(key internal.Key, row internal.Row) error
+	TxGet(TxObj, internal.Key) (internal.Row, error)
+	TxSet(TxObj, internal.Key, internal.Row) error
 
 	Begin(options ...TxOpt) TxObj
 	Commit(TxObj) error
 	Rollback(TxObj) error
 
-	TxGetForUpdate(TxObj, Key) (Row, error)
-	LockKeys(txObj TxObj, keys []Key) error
+	TxGetForUpdate(TxObj, internal.Key) (internal.Row, error)
+	LockKeys(txObj TxObj, keys []internal.Key) error
 }
 
 type TxManager interface {
@@ -29,8 +27,8 @@ type TxManager interface {
 	Commit(TxObj) error
 	Rollback(TxObj) error
 
-	Get(TxObj, Key) (Row, error)
-	Set(TxObj, Key, Row) error
+	Get(TxObj, internal.Key) (internal.Row, error)
+	Set(TxObj, internal.Key, internal.Row) error
 }
 
 type TxFactory interface {
@@ -47,27 +45,27 @@ type TxIsolation interface {
 }
 
 type TxRow interface {
-	GetTxRow() Row
+	GetTxRow() internal.Row
 	GetTxObj() TxObj
 }
 
 type RWTable interface {
-	Get(Key) ([]TxRow, error)
-	Set(TxObj, Key, Row) error
+	Get(internal.Key) ([]TxRow, error)
+	Set(TxObj, internal.Key, internal.Row) error
 }
 
 type ROTable interface {
-	Get(Key) (Row, error)
+	Get(internal.Key) (internal.Row, error)
 }
 
 type ROTables interface {
 	Grow(ROTable)
-	Get(Key) (Row, error)
+	Get(internal.Key) (internal.Row, error)
 }
 
 type Locks interface {
-	InitLock(txID int64, key Key) (waitChan, error)
-	InitLocks(txID int64, keys ...Key) ([]waitChan, error)
+	InitLock(txID int64, key internal.Key) (waitChan, error)
+	InitLocks(txID int64, keys ...internal.Key) ([]waitChan, error)
 	Release(txID int64)
 }
 
