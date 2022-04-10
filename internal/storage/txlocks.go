@@ -85,7 +85,7 @@ func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 		}
 
 		for _, currentTxLocker := range locks {
-			if err := l.isTxBlocksTargetByKeys(txID, currentTxLocker.txID, map[internal.Key]internal.Key{}); err != nil {
+			if err := l.isTxBlocksTargetByKeys(txID, currentTxLocker.txID, nil); err != nil {
 				return nil, err
 			}
 		}
@@ -102,16 +102,15 @@ func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 	return nil, nil
 }
 
-func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKeys map[internal.Key]internal.Key) error {
+func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKey internal.Key) error {
 	checkLocks := l.locksByTx[txID]
 	for _, checkLock := range checkLocks {
-		if _, ok := skipKeys[checkLock.key]; ok {
+		if skipKey == checkLock.key {
 			continue
 		}
 
 		foundCheckLock := false
 		for _, targetLock := range l.locksQueue[checkLock.key] {
-
 			if !foundCheckLock {
 				foundCheckLock = targetLock.txID == checkLock.txID
 				continue
@@ -126,7 +125,7 @@ func (l *txLocks) isTxBlocksTargetByKeys(txID, targetTx int64, skipKeys map[inte
 
 			// проверяем вторичную блокировку
 			// мы залочили targetLock.txID, а она могла залочить целевую
-			if err := l.isTxBlocksTargetByKeys(targetLock.txID, targetTx, map[internal.Key]internal.Key{checkLock.key: checkLock.key}); err != nil {
+			if err := l.isTxBlocksTargetByKeys(targetLock.txID, targetTx, checkLock.key); err != nil {
 				return err
 			}
 		}
