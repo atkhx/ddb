@@ -168,7 +168,7 @@ func sendMoney(db storage.Storage, fromUser, toUser string, amount int64) {
 
 	accountFrom, err := getAccount(db, tx, fromUser)
 	if err != nil {
-		err = errors.Wrap(err, "account FROM not found")
+		//err = errors.Wrap(err, "account FROM not found")
 		return
 	}
 
@@ -179,7 +179,7 @@ func sendMoney(db storage.Storage, fromUser, toUser string, amount int64) {
 
 	accountTo, err := getAccount(db, tx, toUser)
 	if err != nil {
-		err = errors.Wrap(err, "account TO not found")
+		//err = errors.Wrap(err, "account TO not found")
 		return
 	}
 

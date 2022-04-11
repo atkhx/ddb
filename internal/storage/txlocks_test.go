@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/atkhx/ddb/internal"
+	"github.com/atkhx/ddb/internal/keys"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,7 +39,7 @@ func TestTxLocks_InitLock_SingleTransaction(t *testing.T) {
 	tx := &txObj{txID: 1}
 	txLocks := NewTxLocks()
 
-	assertSuccessLockWithoutWait(t, txLocks, tx, "key 1")
+	assertSuccessLockWithoutWait(t, txLocks, tx, keys.StrKey("key 1"))
 	txLocks.Release(tx.GetID())
 }
 
@@ -50,8 +51,8 @@ func TestTxLocks_InitLock_RepeatBySameTransaction(t *testing.T) {
 
 	txLocks := NewTxLocks()
 
-	assertSuccessLockWithoutWait(t, txLocks, tx, "key 1")
-	assertSuccessLockWithoutWait(t, txLocks, tx, "key 1")
+	assertSuccessLockWithoutWait(t, txLocks, tx, keys.StrKey("key 1"))
+	assertSuccessLockWithoutWait(t, txLocks, tx, keys.StrKey("key 1"))
 
 	txLocks.Release(tx.GetID())
 }
@@ -65,8 +66,8 @@ func TestTxLocks_InitLock_WithWaitChan(t *testing.T) {
 
 	txLocks := NewTxLocks()
 
-	assertSuccessLockWithoutWait(t, txLocks, tx1, "key 1")
-	c := assertSuccessLockWithWaitChan(t, txLocks, tx2, "key 1")
+	assertSuccessLockWithoutWait(t, txLocks, tx1, keys.StrKey("key 1"))
+	c := assertSuccessLockWithWaitChan(t, txLocks, tx2, keys.StrKey("key 1"))
 
 	txLocks.Release(tx1.GetID())
 
@@ -90,11 +91,11 @@ func TestTxLocks_InitLock_WithDeadLock(t *testing.T) {
 
 	txLocks := NewTxLocks()
 
-	assertSuccessLockWithoutWait(t, txLocks, tx1, "key 1")
-	assertSuccessLockWithoutWait(t, txLocks, tx2, "key 2")
+	assertSuccessLockWithoutWait(t, txLocks, tx1, keys.StrKey("key 1"))
+	assertSuccessLockWithoutWait(t, txLocks, tx2, keys.StrKey("key 2"))
 
-	assertSuccessLockWithWaitChan(t, txLocks, tx1, "key 2")
-	assertLockWithDeadlockError(t, txLocks, tx2, "key 1")
+	assertSuccessLockWithWaitChan(t, txLocks, tx1, keys.StrKey("key 2"))
+	assertLockWithDeadlockError(t, txLocks, tx2, keys.StrKey("key 1"))
 }
 
 func TestTxLocks_InitLock_WithDeadLockChain(t *testing.T) {
@@ -107,16 +108,16 @@ func TestTxLocks_InitLock_WithDeadLockChain(t *testing.T) {
 
 	txLocks := NewTxLocks()
 
-	assertSuccessLockWithoutWait(t, txLocks, tx1, "key 1")
-	assertSuccessLockWithoutWait(t, txLocks, tx2, "key 2")
-	assertSuccessLockWithoutWait(t, txLocks, tx3, "key 3")
+	assertSuccessLockWithoutWait(t, txLocks, tx1, keys.StrKey("key 1"))
+	assertSuccessLockWithoutWait(t, txLocks, tx2, keys.StrKey("key 2"))
+	assertSuccessLockWithoutWait(t, txLocks, tx3, keys.StrKey("key 3"))
 
 	// tx2 заблокирована и ожидает tx1
-	assertSuccessLockWithWaitChan(t, txLocks, tx2, "key 1")
+	assertSuccessLockWithWaitChan(t, txLocks, tx2, keys.StrKey("key 1"))
 
 	// tx3 заблокирована и ожидает tx2
-	assertSuccessLockWithWaitChan(t, txLocks, tx3, "key 2")
+	assertSuccessLockWithWaitChan(t, txLocks, tx3, keys.StrKey("key 2"))
 
 	// tx1 получает deadlock: tx3 -> tx2 -> tx1
-	assertLockWithDeadlockError(t, txLocks, tx1, "key 3")
+	assertLockWithDeadlockError(t, txLocks, tx1, keys.StrKey("key 3"))
 }

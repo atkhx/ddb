@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/atkhx/ddb/internal/keys"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -90,13 +91,13 @@ func TestStorage_Get(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		txObj := NewTxObj(1)
 		txManager.EXPECT().Begin().Return(txObj)
-		txManager.EXPECT().Get(txObj, 123).Return(nil, nil)
+		txManager.EXPECT().Get(txObj, keys.IntKey(123)).Return(nil, nil)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
 		txLocks.EXPECT().Release(txObj.GetID())
 
-		roTables.EXPECT().Get(123).Return(nil, nil)
+		roTables.EXPECT().Get(keys.IntKey(123)).Return(nil, nil)
 
-		row, err := storage.Get(123)
+		row, err := storage.Get(keys.IntKey(123))
 		assert.Nil(t, row)
 		assert.NoError(t, err)
 	})
@@ -105,13 +106,13 @@ func TestStorage_Get(t *testing.T) {
 		txObj := NewTxObj(123)
 		originErr := errors.New("some error")
 		txManager.EXPECT().Begin().Return(txObj)
-		txManager.EXPECT().Get(txObj, 123).Return(nil, nil)
+		txManager.EXPECT().Get(txObj, keys.IntKey(123)).Return(nil, nil)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
 		txLocks.EXPECT().Release(txObj.GetID())
 
-		roTables.EXPECT().Get(123).Return(nil, originErr)
+		roTables.EXPECT().Get(keys.IntKey(123)).Return(nil, originErr)
 
-		row, err := storage.Get(123)
+		row, err := storage.Get(keys.IntKey(123))
 		assert.Nil(t, row)
 		assert.Error(t, err)
 		assert.Equal(t, originErr, err)
@@ -121,11 +122,11 @@ func TestStorage_Get(t *testing.T) {
 		txObj := NewTxObj(1)
 		originErr := errors.New("some error")
 		txManager.EXPECT().Begin().Return(txObj)
-		txManager.EXPECT().Get(txObj, 123).Return(nil, originErr)
+		txManager.EXPECT().Get(txObj, keys.IntKey(123)).Return(nil, originErr)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
 		txLocks.EXPECT().Release(txObj.GetID())
 
-		row, err := storage.Get(123)
+		row, err := storage.Get(keys.IntKey(123))
 		assert.Nil(t, row)
 		assert.Error(t, err)
 		assert.Equal(t, originErr, err)
@@ -134,13 +135,13 @@ func TestStorage_Get(t *testing.T) {
 	t.Run("found in rotables read", func(t *testing.T) {
 		txObj := NewTxObj(1)
 		txManager.EXPECT().Begin().Return(txObj)
-		txManager.EXPECT().Get(txObj, 123).Return(nil, nil)
+		txManager.EXPECT().Get(txObj, keys.IntKey(123)).Return(nil, nil)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
 		txLocks.EXPECT().Release(txObj.GetID())
 
-		roTables.EXPECT().Get(123).Return("some value", nil)
+		roTables.EXPECT().Get(keys.IntKey(123)).Return("some value", nil)
 
-		row, err := storage.Get(123)
+		row, err := storage.Get(keys.IntKey(123))
 		assert.Equal(t, "some value", row)
 		assert.NoError(t, err)
 	})
@@ -148,11 +149,11 @@ func TestStorage_Get(t *testing.T) {
 	t.Run("found in txManager read", func(t *testing.T) {
 		txObj := NewTxObj(123)
 		txManager.EXPECT().Begin().Return(txObj)
-		txManager.EXPECT().Get(txObj, 123).Return("some value", nil)
+		txManager.EXPECT().Get(txObj, keys.IntKey(123)).Return("some value", nil)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
 		txLocks.EXPECT().Release(txObj.GetID())
 
-		row, err := storage.Get(123)
+		row, err := storage.Get(keys.IntKey(123))
 		assert.Equal(t, "some value", row)
 		assert.NoError(t, err)
 	})
@@ -169,12 +170,12 @@ func TestStorage_Set(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		txObj := NewTxObj(1)
 		txManager.EXPECT().Begin().Return(txObj)
-		txManager.EXPECT().Set(txObj, 123, "some value").Return(nil)
+		txManager.EXPECT().Set(txObj, keys.IntKey(123), "some value").Return(nil)
 		txManager.EXPECT().Commit(txObj).Return(nil)
-		txLocks.EXPECT().InitLocks(txObj.GetID(), 123)
+		txLocks.EXPECT().InitLocks(txObj.GetID(), keys.IntKey(123))
 		txLocks.EXPECT().Release(txObj.GetID())
 
-		err := storage.Set(123, "some value")
+		err := storage.Set(keys.IntKey(123), "some value")
 		assert.NoError(t, err)
 	})
 
@@ -182,12 +183,12 @@ func TestStorage_Set(t *testing.T) {
 		txObj := NewTxObj(1)
 		originErr := errors.New("some error")
 		txManager.EXPECT().Begin().Return(txObj)
-		txManager.EXPECT().Set(txObj, 123, "some value").Return(originErr)
+		txManager.EXPECT().Set(txObj, keys.IntKey(123), "some value").Return(originErr)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
-		txLocks.EXPECT().InitLocks(txObj.GetID(), 123)
+		txLocks.EXPECT().InitLocks(txObj.GetID(), keys.IntKey(123))
 		txLocks.EXPECT().Release(txObj.GetID())
 
-		err := storage.Set(123, "some value")
+		err := storage.Set(keys.IntKey(123), "some value")
 		assert.Error(t, err)
 		assert.Equal(t, originErr, err)
 	})
