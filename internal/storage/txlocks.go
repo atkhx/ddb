@@ -53,18 +53,10 @@ type txLocks struct {
 }
 
 func (l *txLocks) InitLock(txID int64, key internal.Key) (waitChan, error) {
-	l.Lock()
-	defer l.Unlock()
-
 	return l.lockKey(txID, key)
 }
 
-func (l *txLocks) InitLocks(txID int64, keys ...internal.Key) ([]waitChan, error) {
-	l.Lock()
-	defer l.Unlock()
-
-	waitChans := []waitChan{}
-
+func (l *txLocks) InitLocks(txID int64, keys ...internal.Key) (waitChans []waitChan, err error) {
 	for _, key := range keys {
 		waitChan, err := l.lockKey(txID, key)
 		if err != nil {
@@ -76,15 +68,19 @@ func (l *txLocks) InitLocks(txID int64, keys ...internal.Key) ([]waitChan, error
 		}
 	}
 
-	return waitChans, nil
+	return
 }
 
-func (l *txLocks) createLock(txID int64, key internal.Key, needWait bool) *txLock {
+func (l *txLocks) nextLockId() int64 {
+	return atomic.AddInt64(&l.maxLockId, 1)
+}
+
+func (l *txLocks) createLock(lockId, txID int64, key internal.Key, needWait bool) *txLock {
 	var lock *txLock
 	if needWait {
-		lock = NewTxLockWithWait(atomic.AddInt64(&l.maxLockId, 1), txID, key)
+		lock = NewTxLockWithWait(lockId, txID, key)
 	} else {
-		lock = NewTxLock(atomic.AddInt64(&l.maxLockId, 1), txID, key, nil)
+		lock = NewTxLock(lockId, txID, key, nil)
 	}
 
 	if first, ok := l.locksByTxSingle[txID]; ok {
@@ -102,37 +98,38 @@ func (l *txLocks) createLock(txID int64, key internal.Key, needWait bool) *txLoc
 }
 
 func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
-	lockByKey, ok := l.locksQueueSingle[key]
-	if ok && lockByKey != nil {
-
-		locker := lockByKey
-		// исключаем самоблок по ключу
-		for l := lockByKey; l != nil; l = l.next {
-			if l.txID == txID {
-				return nil, nil
-			}
-
-			locker = l
-		}
-
-		if curLock, ok := l.locksByTxSingle[txID]; ok {
-			if err := l.isTxBlocksTargetByKeys(curLock, locker.txID, -1); err != nil {
-				return nil, err
-			}
-		}
-
-		lock := l.createLock(txID, key, true)
-		lock.prev = locker
-		locker.next = lock
-		return lock.wait, nil
+	l.Lock()
+	locker, ok := l.locksQueueSingle[key]
+	if !ok || locker == nil {
+		l.locksQueueSingle[key] = l.createLock(l.nextLockId(), txID, key, false)
+		l.Unlock()
+		return nil, nil
 	}
 
-	lock := l.createLock(txID, key, false)
-	l.locksQueueSingle[key] = lock
-	return nil, nil
+	defer l.Unlock()
+
+	// исключаем самоблок по ключу
+	// проматываем locker на последнюю блокировку ключа key
+	for l := locker; l != nil; l = l.next {
+		if l.txID == txID {
+			return nil, nil
+		}
+		locker = l
+	}
+
+	if curLock, ok := l.locksByTxSingle[txID]; ok {
+		if err := l.isTxBlocksTargetByKeys(curLock, locker.txID, -1); err != nil {
+			return nil, err
+		}
+	}
+
+	lock := l.createLock(l.nextLockId(), txID, key, true)
+	lock.prev = locker
+	locker.next = lock
+	return lock.wait, nil
 }
 
-func (l *txLocks) isTxBlocksTargetByKeys(curLock *txLock, targetTx int64, skipLockId int64) error {
+func (l *txLocks) isTxBlocksTargetByKeys(curLock *txLock, targetTx, skipLockId int64) error {
 	firstLockId := curLock.lockId
 	firstLockIdChecked := false
 

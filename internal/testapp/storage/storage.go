@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/atkhx/ddb/internal/testapp/model"
@@ -29,19 +28,27 @@ func (s *storage) GiveFirstAmount(users []string) {
 	}
 }
 
+var (
+	ErrAccountNotFound       = errors.New("account not found")
+	ErrAccountRowInvalid     = errors.New("account row invalid")
+	ErrAccountHasNoMoney     = errors.New("account has no money")
+	ErrSaveAccountToFailed   = errors.New("save account to failed")
+	ErrSaveAccountFromFailed = errors.New("save account from failed")
+)
+
 func (s *storage) GetAccountForUpdate(tx TX, user string) (model.Account, error) {
 	accountId := model.GetAccountID(user)
 	accountRow, err := s.db.TxGetForUpdate(tx, accountId)
 
 	if err != nil {
-		return model.Account{}, errors.Wrap(err, fmt.Sprintf("get account failed %d %s", tx, accountId))
+		return model.Account{}, err
 	} else if accountRow == nil {
-		return model.Account{}, errors.New("account not found " + accountId.String())
+		return model.Account{}, ErrAccountNotFound
 	}
 
 	result, ok := accountRow.(model.Account)
 	if !ok {
-		return model.Account{}, errors.New("account type invalid")
+		return model.Account{}, ErrAccountRowInvalid
 	}
 
 	return result, nil
@@ -70,18 +77,16 @@ func (s *storage) SendMoney(fromUser, toUser string, amount int64) {
 
 	accountFrom, err := s.GetAccountForUpdate(tx, fromUser)
 	if err != nil {
-		//err = errors.Wrap(err, "account FROM not found")
 		return
 	}
 
 	if accountFrom.Amount < amount {
-		err = errors.New("account FROM has no money")
+		err = ErrAccountHasNoMoney
 		return
 	}
 
 	accountTo, err := s.GetAccountForUpdate(tx, toUser)
 	if err != nil {
-		//err = errors.Wrap(err, "account TO not found")
 		return
 	}
 
@@ -89,12 +94,12 @@ func (s *storage) SendMoney(fromUser, toUser string, amount int64) {
 	accountFrom.Amount -= amount
 
 	if err = s.db.TxSet(tx, model.GetAccountID(toUser), accountTo); err != nil {
-		err = errors.Wrap(err, "save account TO failed")
+		err = ErrSaveAccountToFailed
 		return
 	}
 
 	if err = s.db.TxSet(tx, model.GetAccountID(fromUser), accountFrom); err != nil {
-		err = errors.Wrap(err, "save account FROM failed")
+		err = ErrSaveAccountFromFailed
 		return
 	}
 }

@@ -66,24 +66,41 @@ func (s *storage) TxGet(txObj TxObj, key internal.Key) (internal.Row, error) {
 }
 
 func (s *storage) TxSet(txObj TxObj, key internal.Key, row internal.Row) error {
-	if err := s.LockKeys(txObj, []internal.Key{key}); err != nil {
+	if err := s.LockKey(txObj, key); err != nil {
 		return err
 	}
 	return s.txManager.Set(txObj, key, row)
 }
 
 func (s *storage) TxGetForUpdate(txObj TxObj, key internal.Key) (internal.Row, error) {
-	if err := s.LockKeys(txObj, []internal.Key{key}); err != nil {
+	if err := s.LockKey(txObj, key); err != nil {
 		return nil, err
 	}
 
 	row, err := s.TxGet(txObj, key)
 	if err != nil {
-		//s.txLocks.Release(txID)
 		return nil, err
 	}
 
 	return row, err
+}
+
+func (s *storage) LockKey(txObj TxObj, key internal.Key) error {
+	waitForUnlock, err := s.txLocks.InitLock(txObj.GetID(), key)
+	if err != nil {
+		return err
+	}
+
+	if waitForUnlock != nil {
+		if txObj.GetIsolation().SkipLocked() {
+			return errors.New("already locked")
+		}
+
+		if ok := <-waitForUnlock; !ok {
+			return errors.New("wait cancelled")
+		}
+	}
+	return nil
 }
 
 func (s *storage) LockKeys(txObj TxObj, keys []internal.Key) error {

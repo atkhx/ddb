@@ -46,7 +46,7 @@ func main() {
 	var timeAvg time.Duration
 	var timeAll time.Duration
 
-	for i := 0; i < 50000; i++ {
+	for i := 0; i < 100000; i++ {
 		userFrom := users[rand.Intn(len(users))]
 		userTo := users[rand.Intn(len(users))]
 
