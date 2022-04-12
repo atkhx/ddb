@@ -172,7 +172,7 @@ func TestStorage_Set(t *testing.T) {
 		txManager.EXPECT().Begin().Return(txObj)
 		txManager.EXPECT().Set(txObj, keys.IntKey(123), "some value").Return(nil)
 		txManager.EXPECT().Commit(txObj).Return(nil)
-		txLocks.EXPECT().InitLocks(txObj.GetID(), keys.IntKey(123))
+		txLocks.EXPECT().InitLock(txObj.GetID(), keys.IntKey(123))
 		txLocks.EXPECT().Release(txObj.GetID())
 
 		err := storage.Set(keys.IntKey(123), "some value")
@@ -185,7 +185,7 @@ func TestStorage_Set(t *testing.T) {
 		txManager.EXPECT().Begin().Return(txObj)
 		txManager.EXPECT().Set(txObj, keys.IntKey(123), "some value").Return(originErr)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
-		txLocks.EXPECT().InitLocks(txObj.GetID(), keys.IntKey(123))
+		txLocks.EXPECT().InitLock(txObj.GetID(), keys.IntKey(123))
 		txLocks.EXPECT().Release(txObj.GetID())
 
 		err := storage.Set(keys.IntKey(123), "some value")

@@ -31,11 +31,11 @@ type txLock struct {
 	txID   int64
 	key    internal.Key
 
-	prev *txLock
-	next *txLock
+	prevInKeyQueue *txLock
+	nextInKeyQueue *txLock
 
-	right *txLock
-	left  *txLock
+	prevInTx *txLock
+	nextInTx *txLock
 }
 
 func NewTxLocks() *txLocks {
@@ -84,13 +84,13 @@ func (l *txLocks) createLock(lockId, txID int64, key internal.Key, needWait bool
 	}
 
 	if first, ok := l.locksByTxSingle[txID]; ok {
-		lock.right = first
-		lock.left = first.left
-		first.left.right = lock
-		first.left = lock
+		lock.prevInTx = first
+		lock.nextInTx = first.nextInTx
+		first.nextInTx.prevInTx = lock
+		first.nextInTx = lock
 	} else {
-		lock.right = lock
-		lock.left = lock
+		lock.prevInTx = lock
+		lock.nextInTx = lock
 	}
 	l.locksByTxSingle[txID] = lock
 
@@ -99,18 +99,17 @@ func (l *txLocks) createLock(lockId, txID int64, key internal.Key, needWait bool
 
 func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 	l.Lock()
+	defer l.Unlock()
+
 	locker, ok := l.locksQueueSingle[key]
 	if !ok || locker == nil {
 		l.locksQueueSingle[key] = l.createLock(l.nextLockId(), txID, key, false)
-		l.Unlock()
 		return nil, nil
 	}
 
-	defer l.Unlock()
-
 	// исключаем самоблок по ключу
 	// проматываем locker на последнюю блокировку ключа key
-	for l := locker; l != nil; l = l.next {
+	for l := locker; l != nil; l = l.nextInKeyQueue {
 		if l.txID == txID {
 			return nil, nil
 		}
@@ -123,15 +122,9 @@ func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 		}
 	}
 
-	//if _, ok := l.locksByTxSingle[txID]; ok {
-	//if err := l.isTxBlocksTarget(curLock, locker.txID, -1); err != nil {
-	//	return nil, err
-	//}
-	//}
-
 	lock := l.createLock(l.nextLockId(), txID, key, true)
-	lock.prev = locker
-	locker.next = lock
+	lock.prevInKeyQueue = locker
+	locker.nextInKeyQueue = lock
 	return lock.wait, nil
 }
 
@@ -139,7 +132,7 @@ func (l *txLocks) isTargetBlockedByTx(targetLock *txLock, tx, skipLockId int64) 
 	firstLockId := targetLock.lockId
 	firstLockIdChecked := false
 
-	for checkLock := targetLock; checkLock != nil; checkLock = checkLock.right {
+	for checkLock := targetLock; checkLock != nil; checkLock = checkLock.prevInTx {
 		if firstLockId == checkLock.lockId {
 			if !firstLockIdChecked {
 				firstLockIdChecked = true
@@ -152,45 +145,12 @@ func (l *txLocks) isTargetBlockedByTx(targetLock *txLock, tx, skipLockId int64) 
 			continue
 		}
 
-		for curLock := checkLock.prev; curLock != nil; curLock = curLock.prev {
+		for curLock := checkLock.prevInKeyQueue; curLock != nil; curLock = curLock.prevInKeyQueue {
 			if curLock.txID == tx {
 				return ErrDeadLock
 			}
 
 			if err := l.isTargetBlockedByTx(curLock, tx, curLock.lockId); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (l *txLocks) isTxBlocksTarget(curLock *txLock, targetTx, skipLockId int64) error {
-	firstLockId := curLock.lockId
-	firstLockIdChecked := false
-
-	for checkLock := curLock; checkLock != nil; checkLock = checkLock.right {
-		if firstLockId == checkLock.lockId {
-			if !firstLockIdChecked {
-				firstLockIdChecked = true
-			} else {
-				break
-			}
-		}
-
-		if skipLockId == checkLock.lockId {
-			continue
-		}
-
-		for targetLock := checkLock.next; targetLock != nil; targetLock = targetLock.next {
-			// исходная транзакция блокирет целевую
-			if targetLock.txID == targetTx {
-				return ErrDeadLock
-			}
-
-			// проверяем вторичную блокировку
-			// мы залочили targetLock.txID, а она могла залочить целевую
-			if err := l.isTxBlocksTarget(targetLock.right, targetTx, targetLock.lockId); err != nil {
 				return err
 			}
 		}
@@ -210,7 +170,7 @@ func (l *txLocks) Release(txID int64) {
 	initLockId := l.locksByTxSingle[txID].lockId
 	initLockIdCheck := false
 
-	for ; f != nil; f = f.right {
+	for ; f != nil; f = f.prevInTx {
 		if initLockId == f.lockId {
 			if !initLockIdCheck {
 				initLockIdCheck = true
@@ -222,16 +182,16 @@ func (l *txLocks) Release(txID int64) {
 			f.wait <- false
 		}
 
-		if f.next != nil {
-			f.next.prev = f.prev
+		if f.nextInKeyQueue != nil {
+			f.nextInKeyQueue.prevInKeyQueue = f.prevInKeyQueue
 
-			if f.prev == nil {
-				f.next.wait <- true
-				f.next.wait = nil
-				l.locksQueueSingle[f.key] = f.next
+			if f.prevInKeyQueue == nil {
+				f.nextInKeyQueue.wait <- true
+				f.nextInKeyQueue.wait = nil
+				l.locksQueueSingle[f.key] = f.nextInKeyQueue
 			}
-		} else if f.prev != nil {
-			f.prev.next = f.next
+		} else if f.prevInKeyQueue != nil {
+			f.prevInKeyQueue.nextInKeyQueue = f.nextInKeyQueue
 		} else {
 			delete(l.locksQueueSingle, f.key)
 		}
