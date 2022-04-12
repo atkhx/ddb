@@ -117,11 +117,17 @@ func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 		locker = l
 	}
 
-	if curLock, ok := l.locksByTxSingle[txID]; ok {
-		if err := l.isTxBlocksTargetByKeys(curLock, locker.txID, -1); err != nil {
+	if _, ok := l.locksByTxSingle[txID]; ok {
+		if err := l.isTargetBlockedByTx(locker, txID, -1); err != nil {
 			return nil, err
 		}
 	}
+
+	//if _, ok := l.locksByTxSingle[txID]; ok {
+	//if err := l.isTxBlocksTarget(curLock, locker.txID, -1); err != nil {
+	//	return nil, err
+	//}
+	//}
 
 	lock := l.createLock(l.nextLockId(), txID, key, true)
 	lock.prev = locker
@@ -129,7 +135,37 @@ func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 	return lock.wait, nil
 }
 
-func (l *txLocks) isTxBlocksTargetByKeys(curLock *txLock, targetTx, skipLockId int64) error {
+func (l *txLocks) isTargetBlockedByTx(targetLock *txLock, tx, skipLockId int64) error {
+	firstLockId := targetLock.lockId
+	firstLockIdChecked := false
+
+	for checkLock := targetLock; checkLock != nil; checkLock = checkLock.right {
+		if firstLockId == checkLock.lockId {
+			if !firstLockIdChecked {
+				firstLockIdChecked = true
+			} else {
+				break
+			}
+		}
+
+		if skipLockId == checkLock.lockId {
+			continue
+		}
+
+		for curLock := checkLock.prev; curLock != nil; curLock = curLock.prev {
+			if curLock.txID == tx {
+				return ErrDeadLock
+			}
+
+			if err := l.isTargetBlockedByTx(curLock, tx, curLock.lockId); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (l *txLocks) isTxBlocksTarget(curLock *txLock, targetTx, skipLockId int64) error {
 	firstLockId := curLock.lockId
 	firstLockIdChecked := false
 
@@ -154,7 +190,7 @@ func (l *txLocks) isTxBlocksTargetByKeys(curLock *txLock, targetTx, skipLockId i
 
 			// проверяем вторичную блокировку
 			// мы залочили targetLock.txID, а она могла залочить целевую
-			if err := l.isTxBlocksTargetByKeys(targetLock.right, targetTx, targetLock.lockId); err != nil {
+			if err := l.isTxBlocksTarget(targetLock.right, targetTx, targetLock.lockId); err != nil {
 				return err
 			}
 		}

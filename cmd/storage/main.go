@@ -7,6 +7,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/atkhx/ddb/internal/storage"
@@ -43,10 +44,11 @@ func main() {
 
 	wg := sync.WaitGroup{}
 	rand.Seed(time.Now().UnixNano())
-	var timeAvg time.Duration
+	var timeAvg int64
 	var timeAll time.Duration
+	txCount := 300_000
 
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < txCount; i++ {
 		userFrom := users[rand.Intn(len(users))]
 		userTo := users[rand.Intn(len(users))]
 
@@ -60,7 +62,7 @@ func main() {
 			t := time.Now()
 			defer func() {
 				duration := time.Now().Sub(t)
-				timeAvg += duration
+				atomic.AddInt64(&timeAvg, int64(duration))
 				timeAll += duration
 
 				log.Println("time to tx", duration, "from", userFrom, "to", userTo)
@@ -71,7 +73,7 @@ func main() {
 	}
 	wg.Wait()
 
-	log.Println("timeAvg  ", timeAvg/50000)
+	log.Println("timeAvg  ", time.Duration(timeAvg/int64(txCount)))
 	log.Println("timeAll  ", timeAll)
 
 	appstorarge.CheckTotalAmount(users)
