@@ -9,6 +9,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestBranch_Get(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	leftItem := NewMockItem(ctrl)
+	rightItem := NewMockItem(ctrl)
+
+	branch := &branch{
+		keys:  []internal.Key{keys.IntKey(2)},
+		items: []Item{leftItem, rightItem},
+	}
+
+	t.Run("get from left item", func(t *testing.T) {
+		key := keys.IntKey(1)
+		leftItem.EXPECT().Get(key).Return("some row")
+		assert.Equal(t, "some row", branch.Get(key))
+	})
+
+	t.Run("get from right item by equal split key", func(t *testing.T) {
+		key := keys.IntKey(2)
+		rightItem.EXPECT().Get(key).Return("some row")
+		assert.Equal(t, "some row", branch.Get(key))
+	})
+
+	t.Run("get from right item by greater split key", func(t *testing.T) {
+		key := keys.IntKey(3)
+		rightItem.EXPECT().Get(key).Return("some row")
+		assert.Equal(t, "some row", branch.Get(key))
+	})
+}
+
 func TestBranch_Set(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

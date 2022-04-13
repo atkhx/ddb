@@ -53,23 +53,6 @@ func (l *leaf) Set(key internal.Key, row internal.Row) {
 		return
 	}
 
-	//keys := []internal.Key{}
-	//rows := []internal.Row{}
-	//
-	//if i > 0 {
-	//	keys = append(keys, l.keys[:i]...)
-	//	rows = append(rows, l.rows[:i]...)
-	//}
-	//
-	//keys = append(keys, key)
-	//rows = append(rows, row)
-	//
-	//keys = append(keys, l.keys[i:]...)
-	//rows = append(rows, l.rows[i:]...)
-	//
-	//l.keys = keys
-	//l.rows = rows
-
 	keys := make([]internal.Key, len(l.keys)+1)
 	rows := make([]internal.Row, len(l.rows)+1)
 
