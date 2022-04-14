@@ -86,7 +86,7 @@ func (s *storage) TxGetForUpdate(txObj TxObj, key internal.Key) (internal.Row, e
 }
 
 func (s *storage) LockKey(txObj TxObj, key internal.Key) error {
-	waitForUnlock, err := s.txLocks.InitLock(txObj.GetID(), key)
+	waitForUnlock, err := s.txLocks.LockKey(txObj.GetID(), key)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (s *storage) LockKey(txObj TxObj, key internal.Key) error {
 }
 
 func (s *storage) LockKeys(txObj TxObj, keys []internal.Key) error {
-	waitForUnlock, err := s.txLocks.InitLocks(txObj.GetID(), keys...)
+	waitForUnlock, err := s.txLocks.LockKeys(txObj.GetID(), keys...)
 	if err != nil {
 		return err
 	}

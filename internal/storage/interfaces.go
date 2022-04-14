@@ -64,8 +64,8 @@ type ROTables interface {
 }
 
 type Locks interface {
-	InitLock(txID int64, key internal.Key) (waitChan, error)
-	InitLocks(txID int64, keys ...internal.Key) ([]waitChan, error)
+	LockKey(txID int64, key internal.Key) (waitChan, error)
+	LockKeys(txID int64, keys ...internal.Key) ([]waitChan, error)
 	Release(txID int64)
 }
 

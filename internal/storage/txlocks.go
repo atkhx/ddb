@@ -10,34 +10,6 @@ import (
 
 var ErrDeadLock = errors.New("deadlock")
 
-type waitChan chan bool
-
-func NewTxLockWithWait(lockId, txID int64, key internal.Key) *txLock {
-	return NewTxLock(lockId, txID, key, make(waitChan, 2))
-}
-
-func NewTxLock(lockId, txID int64, key internal.Key, wait waitChan) *txLock {
-	return &txLock{
-		lockId: lockId,
-		wait:   wait,
-		txID:   txID,
-		key:    key,
-	}
-}
-
-type txLock struct {
-	lockId int64
-	wait   chan bool
-	txID   int64
-	key    internal.Key
-
-	prevInKeyQueue *txLock
-	nextInKeyQueue *txLock
-
-	prevInTx *txLock
-	nextInTx *txLock
-}
-
 func NewTxLocks() *txLocks {
 	return &txLocks{
 		locksQueueSingle: map[internal.Key]*txLock{},
@@ -52,11 +24,11 @@ type txLocks struct {
 	locksQueueSingle map[internal.Key]*txLock
 }
 
-func (l *txLocks) InitLock(txID int64, key internal.Key) (waitChan, error) {
+func (l *txLocks) LockKey(txID int64, key internal.Key) (waitChan, error) {
 	return l.lockKey(txID, key)
 }
 
-func (l *txLocks) InitLocks(txID int64, keys ...internal.Key) (waitChans []waitChan, err error) {
+func (l *txLocks) LockKeys(txID int64, keys ...internal.Key) (waitChans []waitChan, err error) {
 	for _, key := range keys {
 		waitChan, err := l.lockKey(txID, key)
 		if err != nil {
@@ -71,29 +43,16 @@ func (l *txLocks) InitLocks(txID int64, keys ...internal.Key) (waitChans []waitC
 	return
 }
 
-func (l *txLocks) nextLockId() int64 {
-	return atomic.AddInt64(&l.maxLockId, 1)
-}
+func (l *txLocks) createLock(txID int64, key internal.Key, needWait bool) *txLock {
+	lock := NewTxLock(
+		atomic.AddInt64(&l.maxLockId, 1),
+		txID,
+		key,
+		l.locksByTxSingle[txID],
+		needWait,
+	)
 
-func (l *txLocks) createLock(lockId, txID int64, key internal.Key, needWait bool) *txLock {
-	var lock *txLock
-	if needWait {
-		lock = NewTxLockWithWait(lockId, txID, key)
-	} else {
-		lock = NewTxLock(lockId, txID, key, nil)
-	}
-
-	if first, ok := l.locksByTxSingle[txID]; ok {
-		lock.prevInTx = first
-		lock.nextInTx = first.nextInTx
-		first.nextInTx.prevInTx = lock
-		first.nextInTx = lock
-	} else {
-		lock.prevInTx = lock
-		lock.nextInTx = lock
-	}
 	l.locksByTxSingle[txID] = lock
-
 	return lock
 }
 
@@ -101,9 +60,9 @@ func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 	l.Lock()
 	defer l.Unlock()
 
-	locker, ok := l.locksQueueSingle[key]
-	if !ok || locker == nil {
-		l.locksQueueSingle[key] = l.createLock(l.nextLockId(), txID, key, false)
+	locker := l.locksQueueSingle[key]
+	if locker == nil {
+		l.locksQueueSingle[key] = l.createLock(txID, key, false)
 		return nil, nil
 	}
 
@@ -122,7 +81,7 @@ func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
 		}
 	}
 
-	lock := l.createLock(l.nextLockId(), txID, key, true)
+	lock := l.createLock(txID, key, true)
 	lock.prevInKeyQueue = locker
 	locker.nextInKeyQueue = lock
 	return lock.wait, nil

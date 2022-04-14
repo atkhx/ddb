@@ -179,13 +179,26 @@ func TestStorage_Set(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("fail", func(t *testing.T) {
+	t.Run("error on get row", func(t *testing.T) {
 		txObj := NewTxObj(1)
 		originErr := errors.New("some error")
 		txManager.EXPECT().Begin().Return(txObj)
 		txManager.EXPECT().Set(txObj, keys.IntKey(123), "some value").Return(originErr)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
 		txLocks.EXPECT().InitLock(txObj.GetID(), keys.IntKey(123))
+		txLocks.EXPECT().Release(txObj.GetID())
+
+		err := storage.Set(keys.IntKey(123), "some value")
+		assert.Error(t, err)
+		assert.Equal(t, originErr, err)
+	})
+
+	t.Run("error on lock", func(t *testing.T) {
+		txObj := NewTxObj(1)
+		originErr := errors.New("some error")
+		txManager.EXPECT().Begin().Return(txObj)
+		txManager.EXPECT().Rollback(txObj).Return(nil)
+		txLocks.EXPECT().InitLock(txObj.GetID(), keys.IntKey(123)).Return(nil, originErr)
 		txLocks.EXPECT().Release(txObj.GetID())
 
 		err := storage.Set(keys.IntKey(123), "some value")

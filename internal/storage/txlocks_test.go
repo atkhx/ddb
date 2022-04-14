@@ -11,14 +11,14 @@ import (
 
 func assertSuccessLockWithoutWait(t *testing.T, locks *txLocks, tx TxObj, key internal.Key) {
 	t.Helper()
-	c, err := locks.InitLock(tx.GetID(), key)
+	c, err := locks.LockKey(tx.GetID(), key)
 	assert.Nil(t, c)
 	assert.NoError(t, err)
 }
 
 func assertSuccessLockWithWaitChan(t *testing.T, locks *txLocks, tx TxObj, key internal.Key) waitChan {
 	t.Helper()
-	c, err := locks.InitLock(tx.GetID(), key)
+	c, err := locks.LockKey(tx.GetID(), key)
 	assert.NotNil(t, c)
 	assert.NoError(t, err)
 	return c
@@ -26,7 +26,7 @@ func assertSuccessLockWithWaitChan(t *testing.T, locks *txLocks, tx TxObj, key i
 
 func assertLockWithDeadlockError(t *testing.T, locks *txLocks, tx TxObj, key internal.Key) {
 	t.Helper()
-	c, err := locks.InitLock(tx.GetID(), key)
+	c, err := locks.LockKey(tx.GetID(), key)
 	assert.Nil(t, c)
 	assert.Error(t, err)
 	assert.Equal(t, ErrDeadLock, err)

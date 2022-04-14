@@ -610,9 +610,9 @@ func (m *MockLocks) EXPECT() *MockLocksMockRecorder {
 }
 
 // InitLock mocks base method.
-func (m *MockLocks) InitLock(txID int64, key internal.Key) (waitChan, error) {
+func (m *MockLocks) LockKey(txID int64, key internal.Key) (waitChan, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InitLock", txID, key)
+	ret := m.ctrl.Call(m, "LockKey", txID, key)
 	ret0, _ := ret[0].(waitChan)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
@@ -621,17 +621,17 @@ func (m *MockLocks) InitLock(txID int64, key internal.Key) (waitChan, error) {
 // InitLock indicates an expected call of InitLock.
 func (mr *MockLocksMockRecorder) InitLock(txID, key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitLock", reflect.TypeOf((*MockLocks)(nil).InitLock), txID, key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockKey", reflect.TypeOf((*MockLocks)(nil).LockKey), txID, key)
 }
 
 // InitLocks mocks base method.
-func (m *MockLocks) InitLocks(txID int64, keys ...internal.Key) ([]waitChan, error) {
+func (m *MockLocks) LockKeys(txID int64, keys ...internal.Key) ([]waitChan, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{txID}
 	for _, a := range keys {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "InitLocks", varargs...)
+	ret := m.ctrl.Call(m, "LockKeys", varargs...)
 	ret0, _ := ret[0].([]waitChan)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
@@ -641,7 +641,7 @@ func (m *MockLocks) InitLocks(txID int64, keys ...internal.Key) ([]waitChan, err
 func (mr *MockLocksMockRecorder) InitLocks(txID interface{}, keys ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{txID}, keys...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InitLocks", reflect.TypeOf((*MockLocks)(nil).InitLocks), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockKeys", reflect.TypeOf((*MockLocks)(nil).LockKeys), varargs...)
 }
 
 // Release mocks base method.
