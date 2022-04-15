@@ -56,7 +56,11 @@ func (l *txLocks) LockKeys(txID int64, skipLocked bool, keys ...internal.Key) er
 			return err
 		}
 
-		if wait != nil && skipLocked {
+		if wait == nil {
+			continue
+		}
+
+		if skipLocked {
 			return ErrSkipLocked
 		}
 

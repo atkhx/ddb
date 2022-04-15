@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/atkhx/ddb/internal"
 	"github.com/atkhx/ddb/internal/keys"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -286,5 +287,62 @@ func TestStorage_TxGetForUpdate(t *testing.T) {
 		assert.Error(t, actualErr)
 		assert.EqualValues(t, err, actualErr)
 		assert.Nil(t, actualRow)
+	})
+}
+
+func TestStorage_LockKey(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	txLocks := NewMockLocks(ctrl)
+	storage := NewStorage(NewMockROTables(ctrl), NewMockTxManager(ctrl), txLocks)
+
+	t.Run("success lock", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key := keys.IntKey(2)
+
+		txLocks.EXPECT().LockKey(tx.GetID(), false, key).Return(nil)
+		assert.NoError(t, storage.LockKey(tx, key))
+	})
+
+	t.Run("fail lock", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key := keys.IntKey(2)
+		err := errors.New("some error")
+
+		txLocks.EXPECT().LockKey(tx.GetID(), false, key).Return(err)
+		actualErr := storage.LockKey(tx, key)
+		assert.Error(t, actualErr)
+		assert.Equal(t, err, actualErr)
+	})
+}
+
+func TestStorage_LockKeys(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	txLocks := NewMockLocks(ctrl)
+	storage := NewStorage(NewMockROTables(ctrl), NewMockTxManager(ctrl), txLocks)
+
+	t.Run("success lock", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key1 := keys.IntKey(2)
+		key2 := keys.IntKey(3)
+
+		txLocks.EXPECT().LockKeys(tx.GetID(), false, key1, key2).Return(nil)
+		assert.NoError(t, storage.LockKeys(tx, []internal.Key{key1, key2}))
+	})
+
+	t.Run("fail lock", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key1 := keys.IntKey(2)
+		key2 := keys.IntKey(3)
+		err := errors.New("some error")
+
+		txLocks.EXPECT().LockKeys(tx.GetID(), false, key1, key2).Return(err)
+
+		actualErr := storage.LockKeys(tx, []internal.Key{key1, key2})
+		assert.Error(t, actualErr)
+		assert.Equal(t, err, actualErr)
 	})
 }
