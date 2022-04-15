@@ -64,8 +64,8 @@ type ROTables interface {
 }
 
 type Locks interface {
-	LockKey(txID int64, key internal.Key) (waitChan, error)
-	LockKeys(txID int64, keys ...internal.Key) ([]waitChan, error)
+	LockKey(txID int64, skipLocked bool, key internal.Key) error
+	LockKeys(txID int64, skipLocked bool, keys ...internal.Key) error
 	Release(txID int64)
 }
 
@@ -81,5 +81,4 @@ type TxObj interface {
 
 	commit()
 	rollback()
-	persist()
 }

@@ -172,7 +172,7 @@ func TestStorage_Set(t *testing.T) {
 		txManager.EXPECT().Begin().Return(txObj)
 		txManager.EXPECT().Set(txObj, keys.IntKey(123), "some value").Return(nil)
 		txManager.EXPECT().Commit(txObj).Return(nil)
-		txLocks.EXPECT().InitLock(txObj.GetID(), keys.IntKey(123))
+		txLocks.EXPECT().LockKey(txObj.GetID(), false, keys.IntKey(123))
 		txLocks.EXPECT().Release(txObj.GetID())
 
 		err := storage.Set(keys.IntKey(123), "some value")
@@ -185,7 +185,7 @@ func TestStorage_Set(t *testing.T) {
 		txManager.EXPECT().Begin().Return(txObj)
 		txManager.EXPECT().Set(txObj, keys.IntKey(123), "some value").Return(originErr)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
-		txLocks.EXPECT().InitLock(txObj.GetID(), keys.IntKey(123))
+		txLocks.EXPECT().LockKey(txObj.GetID(), false, keys.IntKey(123))
 		txLocks.EXPECT().Release(txObj.GetID())
 
 		err := storage.Set(keys.IntKey(123), "some value")
@@ -198,11 +198,93 @@ func TestStorage_Set(t *testing.T) {
 		originErr := errors.New("some error")
 		txManager.EXPECT().Begin().Return(txObj)
 		txManager.EXPECT().Rollback(txObj).Return(nil)
-		txLocks.EXPECT().InitLock(txObj.GetID(), keys.IntKey(123)).Return(nil, originErr)
+		txLocks.EXPECT().LockKey(txObj.GetID(), false, keys.IntKey(123)).Return(originErr)
 		txLocks.EXPECT().Release(txObj.GetID())
 
 		err := storage.Set(keys.IntKey(123), "some value")
 		assert.Error(t, err)
 		assert.Equal(t, originErr, err)
+	})
+}
+
+func TestStorage_TxGetForUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	txManager := NewMockTxManager(ctrl)
+	txLocks := NewMockLocks(ctrl)
+	roTables := NewMockROTables(ctrl)
+	storage := NewStorage(roTables, txManager, txLocks)
+
+	t.Run("success without waiting", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key := keys.IntKey(2)
+		row := "some value"
+
+		txLocks.EXPECT().LockKey(tx.txID, false, key).Return(nil)
+		txManager.EXPECT().Get(tx, key).Return(row, nil)
+
+		actualRow, actualErr := storage.TxGetForUpdate(tx, key)
+
+		assert.NoError(t, actualErr)
+		assert.Equal(t, row, actualRow)
+	})
+
+	t.Run("success on get from ROTables", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key := keys.IntKey(2)
+		row := "some value"
+
+		txLocks.EXPECT().LockKey(tx.txID, false, key).Return(nil)
+		txManager.EXPECT().Get(tx, key).Return(nil, nil)
+		roTables.EXPECT().Get(key).Return(row, nil)
+
+		actualRow, actualErr := storage.TxGetForUpdate(tx, key)
+
+		assert.NoError(t, actualErr)
+		assert.Equal(t, row, actualRow)
+	})
+
+	t.Run("row not found", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key := keys.IntKey(2)
+
+		txLocks.EXPECT().LockKey(tx.txID, false, key).Return(nil)
+		txManager.EXPECT().Get(tx, key).Return(nil, nil)
+		roTables.EXPECT().Get(key).Return(nil, nil)
+
+		actualRow, actualErr := storage.TxGetForUpdate(tx, key)
+
+		assert.NoError(t, actualErr)
+		assert.Nil(t, actualRow)
+	})
+
+	t.Run("lock failed", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key := keys.IntKey(2)
+		err := errors.New("some error")
+
+		txLocks.EXPECT().LockKey(tx.txID, false, key).Return(err)
+
+		actualRow, actualErr := storage.TxGetForUpdate(tx, key)
+
+		assert.Error(t, actualErr)
+		assert.Equal(t, err, actualErr)
+		assert.Nil(t, actualRow)
+	})
+
+	t.Run("fail to get row", func(t *testing.T) {
+		tx := NewTxObj(1)
+		key := keys.IntKey(2)
+		err := errors.New("some get row error")
+
+		txLocks.EXPECT().LockKey(tx.txID, false, key).Return(nil)
+		txManager.EXPECT().Get(tx, key).Return(nil, err)
+
+		actualRow, actualErr := storage.TxGetForUpdate(tx, key)
+
+		assert.Error(t, actualErr)
+		assert.EqualValues(t, err, actualErr)
+		assert.Nil(t, actualRow)
 	})
 }

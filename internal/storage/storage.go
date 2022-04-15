@@ -1,8 +1,6 @@
 package storage
 
 import (
-	"errors"
-
 	"github.com/atkhx/ddb/internal"
 )
 
@@ -86,37 +84,9 @@ func (s *storage) TxGetForUpdate(txObj TxObj, key internal.Key) (internal.Row, e
 }
 
 func (s *storage) LockKey(txObj TxObj, key internal.Key) error {
-	waitForUnlock, err := s.txLocks.LockKey(txObj.GetID(), key)
-	if err != nil {
-		return err
-	}
-
-	if waitForUnlock != nil {
-		if txObj.GetIsolation().SkipLocked() {
-			return errors.New("already locked")
-		}
-
-		if ok := <-waitForUnlock; !ok {
-			return errors.New("wait cancelled")
-		}
-	}
-	return nil
+	return s.txLocks.LockKey(txObj.GetID(), txObj.GetIsolation().SkipLocked(), key)
 }
 
 func (s *storage) LockKeys(txObj TxObj, keys []internal.Key) error {
-	waitForUnlock, err := s.txLocks.LockKeys(txObj.GetID(), keys...)
-	if err != nil {
-		return err
-	}
-
-	if txObj.GetIsolation().SkipLocked() && len(waitForUnlock) > 0 {
-		return errors.New("already locked")
-	}
-
-	for _, wait := range waitForUnlock {
-		if ok := <-wait; !ok {
-			return errors.New("wait cancelled")
-		}
-	}
-	return nil
+	return s.txLocks.LockKeys(txObj.GetID(), txObj.GetIsolation().SkipLocked(), keys...)
 }

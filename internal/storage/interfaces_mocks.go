@@ -609,38 +609,36 @@ func (m *MockLocks) EXPECT() *MockLocksMockRecorder {
 	return m.recorder
 }
 
-// InitLock mocks base method.
-func (m *MockLocks) LockKey(txID int64, key internal.Key) (waitChan, error) {
+// LockKey mocks base method.
+func (m *MockLocks) LockKey(txID int64, skipLocked bool, key internal.Key) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LockKey", txID, key)
-	ret0, _ := ret[0].(waitChan)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "LockKey", txID, skipLocked, key)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// InitLock indicates an expected call of InitLock.
-func (mr *MockLocksMockRecorder) InitLock(txID, key interface{}) *gomock.Call {
+// LockKey indicates an expected call of LockKey.
+func (mr *MockLocksMockRecorder) LockKey(txID, skipLocked, key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockKey", reflect.TypeOf((*MockLocks)(nil).LockKey), txID, key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockKey", reflect.TypeOf((*MockLocks)(nil).LockKey), txID, skipLocked, key)
 }
 
-// InitLocks mocks base method.
-func (m *MockLocks) LockKeys(txID int64, keys ...internal.Key) ([]waitChan, error) {
+// LockKeys mocks base method.
+func (m *MockLocks) LockKeys(txID int64, skipLocked bool, keys ...internal.Key) error {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{txID}
+	varargs := []interface{}{txID, skipLocked}
 	for _, a := range keys {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "LockKeys", varargs...)
-	ret0, _ := ret[0].([]waitChan)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// InitLocks indicates an expected call of InitLocks.
-func (mr *MockLocksMockRecorder) InitLocks(txID interface{}, keys ...interface{}) *gomock.Call {
+// LockKeys indicates an expected call of LockKeys.
+func (mr *MockLocksMockRecorder) LockKeys(txID, skipLocked interface{}, keys ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{txID}, keys...)
+	varargs := append([]interface{}{txID, skipLocked}, keys...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LockKeys", reflect.TypeOf((*MockLocks)(nil).LockKeys), varargs...)
 }
 
@@ -773,18 +771,6 @@ func (m *MockTxObj) commit() {
 func (mr *MockTxObjMockRecorder) commit() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "commit", reflect.TypeOf((*MockTxObj)(nil).commit))
-}
-
-// persist mocks base method.
-func (m *MockTxObj) persist() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "persist")
-}
-
-// persist indicates an expected call of persist.
-func (mr *MockTxObjMockRecorder) persist() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "persist", reflect.TypeOf((*MockTxObj)(nil).persist))
 }
 
 // rollback mocks base method.

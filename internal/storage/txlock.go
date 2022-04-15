@@ -4,6 +4,10 @@ import "github.com/atkhx/ddb/internal"
 
 type waitChan chan bool
 
+var waitFactory = func() waitChan {
+	return make(waitChan, 1)
+}
+
 func NewTxLock(
 	lockId int64,
 	txID int64,
@@ -18,7 +22,7 @@ func NewTxLock(
 	}
 
 	if needWait {
-		lock.wait = make(waitChan, 1)
+		lock.wait = waitFactory()
 	}
 
 	if firstInTx != nil {

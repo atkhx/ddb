@@ -76,7 +76,3 @@ func (tx *txObj) commit() {
 func (tx *txObj) rollback() {
 	tx.setState(TxRolledBack)
 }
-
-func (tx *txObj) persist() {
-	tx.setState(TxPersisted)
-}

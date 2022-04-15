@@ -23,6 +23,21 @@ func TestNewTxObj(t *testing.T) {
 	assert.Equal(t, readCommitted, tx.GetIsolation())
 }
 
+func TestNewTxObjWithOpts(t *testing.T) {
+	now := time.Now()
+	localtime.Now = func() time.Time {
+		return now
+	}
+
+	txID := int64(14)
+	tx := NewTxObj(txID, RepeatableRead())
+
+	assert.Equal(t, txID, tx.GetID())
+	assert.Equal(t, TxUncommitted, tx.GetState())
+	assert.Equal(t, now, tx.GetTime())
+	assert.Equal(t, repeatableRead, tx.GetIsolation())
+}
+
 func TestTxObj_IsReadable(t *testing.T) {
 	type testCase struct {
 		txObj    TxObj

@@ -8,7 +8,11 @@ import (
 	"github.com/atkhx/ddb/internal"
 )
 
-var ErrDeadLock = errors.New("deadlock")
+var (
+	ErrDeadLock      = errors.New("deadlock")
+	ErrSkipLocked    = errors.New("skip locked")
+	ErrWaitCancelled = errors.New("wait cancelled")
+)
 
 func NewTxLocks() *txLocks {
 	return &txLocks{
@@ -24,23 +28,48 @@ type txLocks struct {
 	locksQueueSingle map[internal.Key]*txLock
 }
 
-func (l *txLocks) LockKey(txID int64, key internal.Key) (waitChan, error) {
-	return l.lockKey(txID, key)
-}
+func (l *txLocks) LockKey(txID int64, skipLocked bool, key internal.Key) error {
+	wait, err := l.lockKey(txID, key)
+	if err != nil {
+		return err
+	}
 
-func (l *txLocks) LockKeys(txID int64, keys ...internal.Key) (waitChans []waitChan, err error) {
-	for _, key := range keys {
-		waitChan, err := l.lockKey(txID, key)
-		if err != nil {
-			return nil, err
+	if wait != nil {
+		if skipLocked {
+			return ErrSkipLocked
 		}
 
-		if waitChan != nil {
-			waitChans = append(waitChans, waitChan)
+		if ok := <-wait; !ok {
+			return ErrWaitCancelled
 		}
 	}
 
-	return
+	return nil
+}
+
+func (l *txLocks) LockKeys(txID int64, skipLocked bool, keys ...internal.Key) error {
+	var waitChans []waitChan
+
+	for _, key := range keys {
+		wait, err := l.lockKey(txID, key)
+		if err != nil {
+			return err
+		}
+
+		if wait != nil && skipLocked {
+			return ErrSkipLocked
+		}
+
+		waitChans = append(waitChans, wait)
+	}
+
+	for _, wait := range waitChans {
+		if ok := <-wait; !ok {
+			return ErrWaitCancelled
+		}
+	}
+
+	return nil
 }
 
 func (l *txLocks) createLock(txID int64, key internal.Key, needWait bool) *txLock {
