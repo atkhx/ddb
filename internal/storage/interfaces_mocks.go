@@ -784,3 +784,40 @@ func (mr *MockTxObjMockRecorder) rollback() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "rollback", reflect.TypeOf((*MockTxObj)(nil).rollback))
 }
+
+// MockTxLockWaitFactory is a mock of TxLockWaitFactory interface.
+type MockTxLockWaitFactory struct {
+	ctrl     *gomock.Controller
+	recorder *MockTxLockWaitFactoryMockRecorder
+}
+
+// MockTxLockWaitFactoryMockRecorder is the mock recorder for MockTxLockWaitFactory.
+type MockTxLockWaitFactoryMockRecorder struct {
+	mock *MockTxLockWaitFactory
+}
+
+// NewMockTxLockWaitFactory creates a new mock instance.
+func NewMockTxLockWaitFactory(ctrl *gomock.Controller) *MockTxLockWaitFactory {
+	mock := &MockTxLockWaitFactory{ctrl: ctrl}
+	mock.recorder = &MockTxLockWaitFactoryMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTxLockWaitFactory) EXPECT() *MockTxLockWaitFactoryMockRecorder {
+	return m.recorder
+}
+
+// Create mocks base method.
+func (m *MockTxLockWaitFactory) Create() waitChan {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create")
+	ret0, _ := ret[0].(waitChan)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockTxLockWaitFactoryMockRecorder) Create() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTxLockWaitFactory)(nil).Create))
+}

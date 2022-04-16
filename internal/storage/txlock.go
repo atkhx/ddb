@@ -4,25 +4,18 @@ import "github.com/atkhx/ddb/internal"
 
 type waitChan chan bool
 
-var waitFactory = func() waitChan {
-	return make(waitChan, 1)
-}
-
 func NewTxLock(
 	lockId int64,
 	txID int64,
 	key internal.Key,
 	firstInTx *txLock,
-	needWait bool,
+	wait waitChan,
 ) *txLock {
 	lock := &txLock{
 		lockId: lockId,
 		txID:   txID,
 		key:    key,
-	}
-
-	if needWait {
-		lock.wait = waitFactory()
+		wait:   wait,
 	}
 
 	if firstInTx != nil {
@@ -40,7 +33,7 @@ func NewTxLock(
 
 type txLock struct {
 	lockId int64
-	wait   chan bool
+	wait   waitChan
 	txID   int64
 	key    internal.Key
 

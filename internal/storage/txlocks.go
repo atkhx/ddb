@@ -14,8 +14,9 @@ var (
 	ErrWaitCancelled = errors.New("wait cancelled")
 )
 
-func NewTxLocks() *txLocks {
+func NewTxLocks(lockWaitFactory TxLockWaitFactory) *txLocks {
 	return &txLocks{
+		lockWaitFactory:  lockWaitFactory,
 		locksQueueSingle: map[internal.Key]*txLock{},
 		locksByTxSingle:  map[int64]*txLock{},
 	}
@@ -24,6 +25,7 @@ func NewTxLocks() *txLocks {
 type txLocks struct {
 	maxLockId int64
 	sync.RWMutex
+	lockWaitFactory  TxLockWaitFactory
 	locksByTxSingle  map[int64]*txLock
 	locksQueueSingle map[internal.Key]*txLock
 }
@@ -77,12 +79,17 @@ func (l *txLocks) LockKeys(txID int64, skipLocked bool, keys ...internal.Key) er
 }
 
 func (l *txLocks) createLock(txID int64, key internal.Key, needWait bool) *txLock {
+	var wait waitChan
+	if needWait {
+		wait = l.lockWaitFactory.Create()
+	}
+
 	lock := NewTxLock(
 		atomic.AddInt64(&l.maxLockId, 1),
 		txID,
 		key,
 		l.locksByTxSingle[txID],
-		needWait,
+		wait,
 	)
 
 	l.locksByTxSingle[txID] = lock
@@ -181,6 +188,8 @@ func (l *txLocks) Release(txID int64) {
 				f.nextInKeyQueue.wait <- true
 				f.nextInKeyQueue.wait = nil
 				l.locksQueueSingle[f.key] = f.nextInKeyQueue
+			} else {
+				f.prevInKeyQueue.nextInKeyQueue = f.nextInKeyQueue
 			}
 		} else if f.prevInKeyQueue != nil {
 			f.prevInKeyQueue.nextInKeyQueue = f.nextInKeyQueue

@@ -33,7 +33,7 @@ func main() {
 	rwTabFactory := rwtablebptree.NewFactory()
 	rwTable := rwTabFactory.Create(100)
 
-	txLocks := storage.NewTxLocks()
+	txLocks := storage.NewTxLocks(storage.NewTxLockWaitFactory())
 	ssTables := storage.NewSSTables()
 	txTables := storage.NewTxManager(txFactory, rwTable)
 

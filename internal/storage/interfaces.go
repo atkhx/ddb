@@ -82,3 +82,7 @@ type TxObj interface {
 	commit()
 	rollback()
 }
+
+type TxLockWaitFactory interface {
+	Create() waitChan
+}
