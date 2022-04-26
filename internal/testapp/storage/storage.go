@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/atkhx/ddb/internal/testapp/model"
@@ -61,6 +62,7 @@ func (s *storage) SendMoney(fromUser, toUser string, amount int64) {
 	var err error
 	defer func() {
 		if err != nil {
+			//log.Println("SendMoney failed", err)
 			if err := s.db.Rollback(tx); err != nil {
 				log.Println("rollback transaction", tx, err)
 			}
@@ -115,9 +117,10 @@ func (s *storage) CheckTotalAmount(users []string) {
 
 		account, ok := accountRow.(model.Account)
 		if !ok {
-			log.Println("invalid account type")
+			log.Println("invalid account type", fmt.Sprintf("%v", accountRow))
 			return
 		}
+		//log.Println("account", fmt.Sprintf("%v", accountRow))
 
 		amount += account.Amount
 	}

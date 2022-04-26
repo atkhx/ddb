@@ -7,15 +7,25 @@ import (
 )
 
 func NewBranch(capacity int) *branch {
-	return &branch{capacity: capacity}
+	return &branch{cap: capacity}
 }
 
 type branch struct {
 	sync.RWMutex
 	keys  []internal.Key
 	items []Item
+	cap   int
+}
 
-	capacity int
+func (b *branch) GetKey(i int) internal.Key {
+	if i < len(b.keys) {
+		return b.keys[i]
+	}
+	return nil
+}
+
+func (b *branch) KeysCount() int {
+	return len(b.keys)
 }
 
 func (b *branch) findRow(key internal.Key) int {
@@ -66,12 +76,12 @@ func (b *branch) Set(key internal.Key, row internal.Row) {
 }
 
 func (b *branch) Split() (internal.Key, Item) {
-	if len(b.keys) >= b.capacity {
-		i := b.capacity / 2
+	if len(b.keys) >= b.cap {
+		i := b.cap / 2
 
 		splitKey := b.keys[i]
 
-		newBranch := NewBranch(b.capacity)
+		newBranch := NewBranch(b.cap)
 		newBranch.keys = make([]internal.Key, len(b.keys)-i-1)
 		newBranch.items = make([]Item, len(b.items)-i-1)
 

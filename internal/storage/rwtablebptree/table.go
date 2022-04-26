@@ -1,45 +1,60 @@
 package rwtablebptree
 
 import (
+	"sort"
+
 	"github.com/atkhx/ddb/internal"
-	"github.com/atkhx/ddb/internal/bptree"
 	"github.com/atkhx/ddb/internal/storage"
-	"github.com/pkg/errors"
+	"github.com/atkhx/ddb/pkg/btree"
 )
 
-func NewTable(capacity int) *table {
-	return &table{tree: bptree.NewTree(capacity)}
+func NewTable(capacity int, provider btree.ItemProvider) *table {
+	return &table{tree: btree.NewTree(capacity, provider)}
 }
 
 type table struct {
-	tree bptree.Tree
+	tree btree.Tree
 }
 
 func (t *table) Get(key internal.Key) ([]storage.TxRow, error) {
-	row := t.tree.Get(key)
-	if row == nil {
+	rows := t.tree.Get(key)
+	if rows == nil {
 		return nil, nil
 	}
 
-	txItemsRow, ok := row.(*txItems)
-	if !ok {
-		return nil, errors.New("invalid row type")
+	var txRows []storage.TxRow
+	for _, row := range rows {
+		txRows = append(txRows, row.(storage.TxRow))
 	}
-	return txItemsRow.getItems(), nil
+	sort.Slice(txRows, func(i, j int) bool {
+		return txRows[i].GetTxObj().GetTime().After(txRows[j].GetTxObj().GetTime())
+	})
+
+	return txRows, nil
+	//txItemsRow, ok := rows.(*txItems)
+	//if !ok {
+	//	return nil, errors.New("invalid row type")
+	//}
+	//return txItemsRow.getItems(), nil
 }
 
 func (t *table) Set(txObj storage.TxObj, key internal.Key, row internal.Row) error {
-	r := t.tree.Get(key)
-	if r == nil {
-		t.tree.Set(key, NewTxItemsWithItem(row, txObj))
-		return nil
-	}
-
-	txItemsRow, ok := r.(*txItems)
-	if !ok {
-		return errors.New("invalid row type")
-	}
-
-	txItemsRow.addItem(row, txObj)
+	t.tree.Set(key, &txItem{
+		txRow: row,
+		txObj: txObj,
+	})
 	return nil
+	//r := t.tree.Get(key)
+	//if r == nil {
+	//	t.tree.Set(key, NewTxItemsWithItem(row, txObj))
+	//	return nil
+	//}
+	//
+	//txItemsRow, ok := r.(*txItems)
+	//if !ok {
+	//	return errors.New("invalid row type")
+	//}
+	//
+	//txItemsRow.addItem(row, txObj)
+	//return nil
 }

@@ -48,9 +48,9 @@ func TestBranch_Set(t *testing.T) {
 	rightItem := NewMockItem(ctrl)
 
 	branch := &branch{
-		keys:     []internal.Key{keys.IntKey(2)},
-		items:    []Item{leftItem, rightItem},
-		capacity: 0,
+		keys:  []internal.Key{keys.IntKey(2)},
+		items: []Item{leftItem, rightItem},
+		cap:   0,
 	}
 
 	t.Run("insert left", func(t *testing.T) {
@@ -188,7 +188,7 @@ func TestBranch_Split(t *testing.T) {
 			originBranch:   NewBranch(3),
 			expectedOrigin: NewBranch(3),
 		},
-		"split on capacity 3": {
+		"split on cap 3": {
 			originBranch: &branch{
 				keys: []internal.Key{
 					keys.IntKey(1),
@@ -196,22 +196,22 @@ func TestBranch_Split(t *testing.T) {
 					keys.IntKey(3),
 				},
 				items: []Item{
-					&leaf{keys: []internal.Key{keys.IntKey(1)}, rows: nil, capacity: 3},
-					&leaf{keys: []internal.Key{keys.IntKey(2)}, rows: nil, capacity: 3},
-					&leaf{keys: []internal.Key{keys.IntKey(3)}, rows: nil, capacity: 3},
-					&leaf{keys: []internal.Key{keys.IntKey(4)}, rows: nil, capacity: 3},
+					&leaf{keys: []internal.Key{keys.IntKey(1)}, rows: nil, cap: 3},
+					&leaf{keys: []internal.Key{keys.IntKey(2)}, rows: nil, cap: 3},
+					&leaf{keys: []internal.Key{keys.IntKey(3)}, rows: nil, cap: 3},
+					&leaf{keys: []internal.Key{keys.IntKey(4)}, rows: nil, cap: 3},
 				},
-				capacity: 3,
+				cap: 3,
 			},
 			expectedOrigin: &branch{
 				keys: []internal.Key{
 					keys.IntKey(1),
 				},
 				items: []Item{
-					&leaf{keys: []internal.Key{keys.IntKey(1)}, rows: nil, capacity: 3},
-					&leaf{keys: []internal.Key{keys.IntKey(2)}, rows: nil, capacity: 3},
+					&leaf{keys: []internal.Key{keys.IntKey(1)}, rows: nil, cap: 3},
+					&leaf{keys: []internal.Key{keys.IntKey(2)}, rows: nil, cap: 3},
 				},
-				capacity: 3,
+				cap: 3,
 			},
 			expectedSplitKey: keys.IntKey(2),
 			expectedSplitItem: &branch{
@@ -219,13 +219,13 @@ func TestBranch_Split(t *testing.T) {
 					keys.IntKey(3),
 				},
 				items: []Item{
-					&leaf{keys: []internal.Key{keys.IntKey(3)}, rows: nil, capacity: 3},
-					&leaf{keys: []internal.Key{keys.IntKey(4)}, rows: nil, capacity: 3},
+					&leaf{keys: []internal.Key{keys.IntKey(3)}, rows: nil, cap: 3},
+					&leaf{keys: []internal.Key{keys.IntKey(4)}, rows: nil, cap: 3},
 				},
-				capacity: 3,
+				cap: 3,
 			},
 		},
-		"split on capacity 4": {
+		"split on cap 4": {
 			originBranch: &branch{
 				keys: []internal.Key{
 					keys.IntKey(1),
@@ -234,13 +234,13 @@ func TestBranch_Split(t *testing.T) {
 					keys.IntKey(4),
 				},
 				items: []Item{
-					&leaf{keys: []internal.Key{keys.IntKey(1)}, rows: nil, capacity: 4},
-					&leaf{keys: []internal.Key{keys.IntKey(2)}, rows: nil, capacity: 4},
-					&leaf{keys: []internal.Key{keys.IntKey(3)}, rows: nil, capacity: 4},
-					&leaf{keys: []internal.Key{keys.IntKey(4)}, rows: nil, capacity: 4},
-					&leaf{keys: []internal.Key{keys.IntKey(5)}, rows: nil, capacity: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(1)}, rows: nil, cap: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(2)}, rows: nil, cap: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(3)}, rows: nil, cap: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(4)}, rows: nil, cap: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(5)}, rows: nil, cap: 4},
 				},
-				capacity: 4,
+				cap: 4,
 			},
 			expectedOrigin: &branch{
 				keys: []internal.Key{
@@ -248,11 +248,11 @@ func TestBranch_Split(t *testing.T) {
 					keys.IntKey(2),
 				},
 				items: []Item{
-					&leaf{keys: []internal.Key{keys.IntKey(1)}, rows: nil, capacity: 4},
-					&leaf{keys: []internal.Key{keys.IntKey(2)}, rows: nil, capacity: 4},
-					&leaf{keys: []internal.Key{keys.IntKey(3)}, rows: nil, capacity: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(1)}, rows: nil, cap: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(2)}, rows: nil, cap: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(3)}, rows: nil, cap: 4},
 				},
-				capacity: 4,
+				cap: 4,
 			},
 			expectedSplitKey: keys.IntKey(3),
 			expectedSplitItem: &branch{
@@ -260,10 +260,10 @@ func TestBranch_Split(t *testing.T) {
 					keys.IntKey(4),
 				},
 				items: []Item{
-					&leaf{keys: []internal.Key{keys.IntKey(4)}, rows: nil, capacity: 4},
-					&leaf{keys: []internal.Key{keys.IntKey(5)}, rows: nil, capacity: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(4)}, rows: nil, cap: 4},
+					&leaf{keys: []internal.Key{keys.IntKey(5)}, rows: nil, cap: 4},
 				},
-				capacity: 4,
+				cap: 4,
 			},
 		},
 	}

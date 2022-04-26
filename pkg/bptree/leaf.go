@@ -7,15 +7,27 @@ import (
 )
 
 func NewLeaf(capacity int) *leaf {
-	return &leaf{capacity: capacity}
+	return &leaf{cap: capacity}
 }
 
 type leaf struct {
 	sync.RWMutex
 	keys []internal.Key
 	rows []internal.Row
+	next *leaf
 
-	capacity int
+	cap int
+}
+
+func (l *leaf) GetKey(i int) internal.Key {
+	if i < len(l.keys) {
+		return l.keys[i]
+	}
+	return nil
+}
+
+func (l *leaf) KeysCount() int {
+	return len(l.keys)
 }
 
 func (l *leaf) findKey(key internal.Key) (int, bool) {
@@ -74,13 +86,13 @@ func (l *leaf) Set(key internal.Key, row internal.Row) {
 }
 
 func (l *leaf) Split() (internal.Key, Item) {
-	if len(l.keys) >= l.capacity {
-		i := l.capacity / 2
-		if l.capacity%2 > 0 {
+	if len(l.keys) >= l.cap {
+		i := l.cap / 2
+		if l.cap%2 > 0 {
 			i++
 		}
 
-		newLeaf := NewLeaf(l.capacity)
+		newLeaf := NewLeaf(l.cap)
 		newLeaf.keys = make([]internal.Key, len(l.keys)-i)
 		newLeaf.rows = make([]internal.Row, len(l.rows)-i)
 
@@ -89,6 +101,9 @@ func (l *leaf) Split() (internal.Key, Item) {
 
 		l.keys = l.keys[:i]
 		l.rows = l.rows[:i]
+
+		newLeaf.next = l.next
+		l.next = newLeaf
 
 		return newLeaf.keys[0], newLeaf
 	}

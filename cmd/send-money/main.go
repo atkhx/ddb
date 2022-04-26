@@ -13,6 +13,7 @@ import (
 	"github.com/atkhx/ddb/internal/storage"
 	"github.com/atkhx/ddb/internal/storage/rwtablebptree"
 	testapp_storage "github.com/atkhx/ddb/internal/testapp/storage"
+	"github.com/atkhx/ddb/pkg/btree"
 )
 
 var users = makeUsers(5000)
@@ -31,7 +32,7 @@ func main() {
 
 	txFactory := storage.NewTxFactory(0)
 	rwTabFactory := rwtablebptree.NewFactory()
-	rwTable := rwTabFactory.Create(100)
+	rwTable := rwTabFactory.Create(3, btree.NewInmemProvider())
 
 	txLocks := storage.NewTxLocks(storage.NewTxLockWaitFactory())
 	ssTables := storage.NewSSTables()
@@ -41,6 +42,10 @@ func main() {
 
 	appstorarge := testapp_storage.New(db)
 	appstorarge.GiveFirstAmount(users)
+	//appstorarge.GiveFirstAmount(users)
+
+	appstorarge.CheckTotalAmount(users)
+	//return
 
 	wg := sync.WaitGroup{}
 	rand.Seed(time.Now().UnixNano())
