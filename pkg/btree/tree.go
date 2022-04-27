@@ -19,15 +19,89 @@ type tree struct {
 	capacity int
 }
 
-func (t *tree) Get(key internal.Key) (rows []internal.Row) {
+func (t *tree) ScanASC(fn func(row internal.Row) bool) error {
 	t.RLock()
 	defer t.RUnlock()
-	for leaf, firstLeaf := t.getLeaf(key), true; leaf != nil; firstLeaf = false {
-		i, ok := t.searchKeyInLeaf(leaf, key)
-		if !ok && !firstLeaf {
-			return
+
+	leaf, err := t.provider.GetRootItem()
+	if err != nil {
+		return err
+	}
+
+	for !leaf.isLeaf {
+		leaf, err = t.provider.LoadItem(leaf.iids[0])
+		if err != nil {
+			return err
+		}
+	}
+
+	for leaf != nil {
+		for _, row := range leaf.rows {
+			if fn(row) {
+				break
+			}
 		}
 
+		if leaf.rightID == nil {
+			break
+		}
+
+		leaf, err = t.provider.LoadItem(leaf.rightID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *tree) ScanDESC(fn func(row internal.Row) bool) error {
+	t.RLock()
+	defer t.RUnlock()
+
+	leaf, err := t.provider.GetRootItem()
+	if err != nil {
+		return err
+	}
+
+	for !leaf.isLeaf {
+		leaf, err = t.provider.LoadItem(leaf.iids[len(leaf.iids)-1])
+		if err != nil {
+			return err
+		}
+	}
+
+	for leaf != nil {
+		for i := len(leaf.rows); i > 0; i-- {
+			if fn(leaf.rows[i-1]) {
+				break
+			}
+		}
+
+		if leaf.leftID == nil {
+			break
+		}
+
+		leaf, err = t.provider.LoadItem(leaf.leftID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (t *tree) Get(key internal.Key) (rows []internal.Row, err error) {
+	t.RLock()
+	defer t.RUnlock()
+
+	leaf, err := t.getLeafASC(key)
+	if err != nil {
+		return nil, err
+	}
+
+	for firstLeaf := true; leaf != nil; firstLeaf = false {
+		i, ok := t.searchKeyInLeafASC(leaf, key)
 		if ok {
 			rows = append(rows, leaf.rows[i])
 
@@ -38,28 +112,39 @@ func (t *tree) Get(key internal.Key) (rows []internal.Row) {
 
 				rows = append(rows, leaf.rows[j])
 			}
+		} else if !firstLeaf {
+			return
 		}
 
 		if leaf.rightID == nil {
 			return
 		}
 
-		leaf = t.provider.LoadItem(leaf.rightID)
+		leaf, err = t.provider.LoadItem(leaf.rightID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return
 }
 
-func (t *tree) getLeaf(key internal.Key) *item {
-	for item := t.provider.GetRootItem(); item != nil; item = t.searchItemInBranch(item, key) {
-		if item.isLeaf {
-			return item
+func (t *tree) getLeafASC(key internal.Key) (*item, error) {
+	item, err := t.provider.GetRootItem()
+	if err != nil {
+		return nil, err
+	}
+
+	for !item.isLeaf {
+		item, err = t.provider.LoadItem(item.iids[t.searchKeyInBranchASC(item, key)])
+		if err != nil {
+			return nil, err
 		}
 	}
-	return nil
+	return item, nil
 }
 
-func (t *tree) searchKeyInBranch(branch *item, key internal.Key) int {
+func (t *tree) searchKeyInBranchASC(branch *item, key internal.Key) int {
 	for i := 0; i < len(branch.keys); i++ {
 		if branch.keys[i].GreaterThan(key) {
 			return i
@@ -67,34 +152,21 @@ func (t *tree) searchKeyInBranch(branch *item, key internal.Key) int {
 
 		if branch.keys[i] == key {
 			return i
-			//return i + 1
 		}
 	}
 	return len(branch.keys)
 }
 
-func (t *tree) searchItemInBranch(branch *item, key internal.Key) *item {
-	return t.provider.LoadItem(branch.iids[t.searchKeyInBranch(branch, key)])
-}
-
-func (t *tree) searchKeyInBranchForInsert(branch *item, key internal.Key) int {
+func (t *tree) searchKeyInBranchDESC(branch *item, key internal.Key) int {
 	for i := 0; i < len(branch.keys); i++ {
 		if branch.keys[i].GreaterThan(key) {
 			return i
 		}
-
-		if branch.keys[i] == key {
-			return i + 1
-		}
 	}
 	return len(branch.keys)
 }
 
-func (t *tree) searchItemInBranchForInsert(branch *item, key internal.Key) *item {
-	return t.provider.LoadItem(branch.iids[t.searchKeyInBranchForInsert(branch, key)])
-}
-
-func (t *tree) searchKeyInLeaf(leaf *item, key internal.Key) (int, bool) {
+func (t *tree) searchKeyInLeafASC(leaf *item, key internal.Key) (int, bool) {
 	for i := 0; i < len(leaf.keys); i++ {
 		if leaf.keys[i] == key {
 			return i, true
@@ -107,112 +179,132 @@ func (t *tree) searchKeyInLeaf(leaf *item, key internal.Key) (int, bool) {
 	return len(leaf.keys), false
 }
 
-func (t *tree) searchKeyInLeafForInsert(leaf *item, key internal.Key) (int, bool) {
+func (t *tree) searchKeyInLeafDESC(leaf *item, key internal.Key) int {
 	for i := 0; i < len(leaf.keys); i++ {
 		if leaf.keys[i].GreaterThan(key) {
-			return i, false
+			return i
 		}
 	}
-	return len(leaf.keys), false
+	return len(leaf.keys)
 }
 
-func (t *tree) searchRowInLeaf(leaf *item, key internal.Key) internal.Row {
-	i, ok := t.searchKeyInLeaf(leaf, key)
-	if ok {
-		return leaf.rows[i]
+func (t *tree) getLeafForInsert(key internal.Key) (searchPath searchPath, err error) {
+	var idx int
+
+	item, err := t.provider.GetRootItem()
+	if err != nil {
+		return nil, err
 	}
-	return nil
-}
 
-func (t *tree) getLeafForInsert(key internal.Key) *item {
-	for item := t.provider.GetRootItem(); item != nil; item = t.searchItemInBranchForInsert(item, key) {
+	for item != nil {
 		if item.isLeaf {
-			return item
+			idx = t.searchKeyInLeafDESC(item, key)
+		} else {
+			idx = t.searchKeyInBranchDESC(item, key)
+		}
+
+		searchPath = append(searchPath, searchPathItem{
+			item: item,
+			kidx: idx,
+		})
+
+		if item.isLeaf {
+			return
+		}
+
+		item, err = t.provider.LoadItem(item.iids[idx])
+		if err != nil {
+			return nil, err
 		}
 	}
-	return nil
+	return
 }
 
-func (t *tree) Set(key internal.Key, row internal.Row) {
+func (t *tree) Set(key internal.Key, row internal.Row) error {
 	t.Lock()
 	defer t.Unlock()
 
-	leaf := t.getLeafForInsert(key)
-	t.insertRowInLeaf(leaf, key, row)
-	t.provider.SaveItem(leaf)
+	searchPath, err := t.getLeafForInsert(key)
+	if err != nil {
+		return err
+	}
 
-	curItem := leaf
-	splitKey, newItem := t.splitLeaf(leaf)
+	item := searchPath[len(searchPath)-1].item
+	kidx := searchPath[len(searchPath)-1].kidx
+
+	searchPath = searchPath[:len(searchPath)-1]
+
+	t.insertRowInLeaf(item, kidx, key, row)
+
+	if err = t.provider.SaveItem(item); err != nil {
+		return err
+	}
+
+	splitKey, newItem, err := t.splitLeaf(item)
+	if err != nil {
+		return err
+	}
+
 	for newItem != nil {
-		t.provider.SaveItem(newItem)
-		if newItem.parentID == nil {
-			newRoot := t.provider.GetNewBranch()
-			newRoot.keys = []internal.Key{splitKey}
-			newRoot.iids = []ItemID{curItem.itemID, newItem.itemID}
-
-			newItem.parentID = newRoot.itemID
-			curItem.parentID = newRoot.itemID
-
-			t.provider.SaveItem(newRoot)
-			break
+		if err = t.provider.SaveItem(newItem); err != nil {
+			return err
 		}
 
-		branch := t.provider.LoadItem(newItem.parentID)
-		var idx int
-		//if curItem.isLeaf {
-		idx = t.searchKeyInBranchForInsert(branch, key)
-		//} else {
-		//	idx = t.searchKeyInBranch(branch, key)
-		//}
+		if item.isRoot {
+			return t.growRoot(splitKey, item, newItem)
+		}
 
-		t.growBranch(branch, idx, splitKey, newItem)
+		item = searchPath[len(searchPath)-1].item
+		kidx = searchPath[len(searchPath)-1].kidx
 
-		curItem = branch
-		splitKey, newItem = t.splitBranch(branch)
+		searchPath = searchPath[:len(searchPath)-1]
+
+		t.growBranch(item, kidx, splitKey, newItem)
+
+		splitKey, newItem, err = t.splitBranch(item)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func (t *tree) insertRowInLeaf(leaf *item, key internal.Key, row internal.Row) {
-	i, _ := t.searchKeyInLeafForInsert(leaf, key)
-	//if ok {
-	//	leaf.rows[i] = row
-	//	return
-	//}
-	//if ok {
-	//	i++
-	//}
-
+func (t *tree) insertRowInLeaf(leaf *item, idx int, key internal.Key, row internal.Row) {
 	keys := make([]internal.Key, len(leaf.keys)+1)
 	rows := make([]internal.Row, len(leaf.rows)+1)
 
-	if i > 0 {
-		copy(keys[:i], leaf.keys[:i])
-		copy(rows[:i], leaf.rows[:i])
+	if idx > 0 {
+		copy(keys[:idx], leaf.keys[:idx])
+		copy(rows[:idx], leaf.rows[:idx])
 	}
 
-	if i < len(leaf.keys) {
-		copy(keys[i+1:], leaf.keys[i:])
-		copy(rows[i+1:], leaf.rows[i:])
+	if idx < len(leaf.keys) {
+		copy(keys[idx+1:], leaf.keys[idx:])
+		copy(rows[idx+1:], leaf.rows[idx:])
 	}
 
-	keys[i] = key
-	rows[i] = row
+	keys[idx] = key
+	rows[idx] = row
 
 	leaf.keys = keys
 	leaf.rows = rows
 }
 
-func (t *tree) splitLeaf(leaf *item) (internal.Key, *item) {
+func (t *tree) splitLeaf(leaf *item) (internal.Key, *item, error) {
 	if len(leaf.keys) >= t.capacity {
 		i := t.capacity / 2
 		if t.capacity%2 > 0 {
 			i++
 		}
 
-		newLeaf := t.provider.GetNewLeaf()
+		newLeaf, err := t.provider.GetNewLeaf()
+		if err != nil {
+			return nil, nil, err
+		}
 
-		newLeaf.parentID = leaf.parentID
 		newLeaf.rightID = leaf.rightID
+		newLeaf.leftID = leaf.itemID
 		leaf.rightID = newLeaf.itemID
 
 		newLeaf.keys = make([]internal.Key, len(leaf.keys)-i)
@@ -224,21 +316,24 @@ func (t *tree) splitLeaf(leaf *item) (internal.Key, *item) {
 		leaf.keys = leaf.keys[:i]
 		leaf.rows = leaf.rows[:i]
 
-		return newLeaf.keys[0], newLeaf
+		return newLeaf.keys[0], newLeaf, nil
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
-func (t *tree) splitBranch(branch *item) (internal.Key, *item) {
+func (t *tree) splitBranch(branch *item) (internal.Key, *item, error) {
 	if len(branch.keys) >= t.capacity {
 		i := t.capacity / 2
 
 		splitKey := branch.keys[i]
 
-		newBranch := t.provider.GetNewBranch()
+		newBranch, err := t.provider.GetNewBranch()
+		if err != nil {
+			return nil, nil, err
+		}
 
-		newBranch.parentID = branch.parentID
 		newBranch.rightID = branch.rightID
+		newBranch.leftID = branch.itemID
 		branch.rightID = newBranch.itemID
 
 		newBranch.keys = make([]internal.Key, len(branch.keys)-i-1)
@@ -250,15 +345,9 @@ func (t *tree) splitBranch(branch *item) (internal.Key, *item) {
 		branch.keys = branch.keys[:i]
 		branch.iids = branch.iids[:i+1]
 
-		for _, iid := range newBranch.iids {
-			item := t.provider.LoadItem(iid)
-			item.parentID = newBranch.itemID
-			t.provider.SaveItem(item)
-		}
-
-		return splitKey, newBranch
+		return splitKey, newBranch, nil
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
 func (t *tree) growBranch(branch *item, idx int, splitKey internal.Key, newItem *item) {
@@ -276,4 +365,20 @@ func (t *tree) growBranch(branch *item, idx int, splitKey internal.Key, newItem 
 
 	branch.keys = keys
 	branch.iids = iids
+}
+
+func (t *tree) growRoot(splitKey internal.Key, curItem, newItem *item) error {
+	newRoot, err := t.provider.GetNewBranch()
+	if err != nil {
+		return err
+	}
+
+	newRoot.isRoot = true
+	newRoot.keys = []internal.Key{splitKey}
+	newRoot.iids = []ItemID{curItem.itemID, newItem.itemID}
+
+	curItem.isRoot = false
+	newItem.isRoot = false
+
+	return t.provider.SaveItem(newRoot)
 }

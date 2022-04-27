@@ -17,9 +17,9 @@ type table struct {
 }
 
 func (t *table) Get(key internal.Key) ([]storage.TxRow, error) {
-	rows := t.tree.Get(key)
-	if rows == nil {
-		return nil, nil
+	rows, err := t.tree.Get(key)
+	if rows == nil || err != nil {
+		return nil, err
 	}
 
 	var txRows []storage.TxRow
@@ -31,30 +31,11 @@ func (t *table) Get(key internal.Key) ([]storage.TxRow, error) {
 	})
 
 	return txRows, nil
-	//txItemsRow, ok := rows.(*txItems)
-	//if !ok {
-	//	return nil, errors.New("invalid row type")
-	//}
-	//return txItemsRow.getItems(), nil
 }
 
 func (t *table) Set(txObj storage.TxObj, key internal.Key, row internal.Row) error {
-	t.tree.Set(key, &txItem{
+	return t.tree.Set(key, &txItem{
 		txRow: row,
 		txObj: txObj,
 	})
-	return nil
-	//r := t.tree.Get(key)
-	//if r == nil {
-	//	t.tree.Set(key, NewTxItemsWithItem(row, txObj))
-	//	return nil
-	//}
-	//
-	//txItemsRow, ok := r.(*txItems)
-	//if !ok {
-	//	return errors.New("invalid row type")
-	//}
-	//
-	//txItemsRow.addItem(row, txObj)
-	//return nil
 }

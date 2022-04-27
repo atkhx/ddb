@@ -6,12 +6,20 @@ import (
 
 type item struct {
 	isLeaf bool
+	isRoot bool
 
-	itemID   ItemID
-	parentID ItemID
-	rightID  ItemID
+	itemID  ItemID
+	rightID ItemID
+	leftID  ItemID
 
 	keys []internal.Key
 	rows []internal.Row
 	iids []ItemID
+}
+
+type searchPath []searchPathItem
+
+type searchPathItem struct {
+	item *item
+	kidx int
 }
