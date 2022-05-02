@@ -3,20 +3,20 @@ package rwtablebptree
 import (
 	"sort"
 
-	"github.com/atkhx/ddb/internal"
 	"github.com/atkhx/ddb/internal/storage"
-	"github.com/atkhx/ddb/pkg/btree"
+	"github.com/atkhx/ddb/pkg/base"
+	"github.com/atkhx/ddb/pkg/bptree"
 )
 
-func NewTable(capacity int, provider btree.ItemProvider) *table {
-	return &table{tree: btree.NewTree(capacity, provider)}
+func NewTable(capacity int, provider bptree.ItemProvider) *table {
+	return &table{tree: bptree.NewTree(capacity, provider)}
 }
 
 type table struct {
-	tree btree.Tree
+	tree bptree.Tree
 }
 
-func (t *table) Get(key internal.Key) ([]storage.TxRow, error) {
+func (t *table) Get(key base.Key) ([]storage.TxRow, error) {
 	rows, err := t.tree.Get(key)
 	if rows == nil || err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (t *table) Get(key internal.Key) ([]storage.TxRow, error) {
 	return txRows, nil
 }
 
-func (t *table) Set(txObj storage.TxObj, key internal.Key, row internal.Row) error {
+func (t *table) Set(txObj storage.TxObj, key base.Key, row interface{}) error {
 	return t.tree.Set(key, &txItem{
 		txRow: row,
 		txObj: txObj,

@@ -2,7 +2,7 @@ package rwtablebptree
 
 import (
 	"github.com/atkhx/ddb/internal/storage"
-	"github.com/atkhx/ddb/pkg/btree"
+	"github.com/atkhx/ddb/pkg/bptree"
 )
 
 func NewFactory() *factory {
@@ -12,6 +12,6 @@ func NewFactory() *factory {
 type factory struct {
 }
 
-func (f *factory) Create(capacity int, provider btree.ItemProvider) storage.RWTable {
+func (f *factory) Create(capacity int, provider bptree.ItemProvider) storage.RWTable {
 	return NewTable(capacity, provider)
 }

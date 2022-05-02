@@ -3,14 +3,14 @@ package model
 import (
 	"fmt"
 
-	"github.com/atkhx/ddb/internal/keys"
+	"github.com/atkhx/ddb/pkg/base"
 )
 
-func GetAccountID(user string) keys.StrKey {
-	return keys.StrKey(fmt.Sprintf("account_%s", user))
+func GetAccountID(user string) base.StrKey {
+	return base.StrKey(fmt.Sprintf("account_%s", user))
 }
 
 type Account struct {
-	ID     keys.StrKey
+	ID     base.StrKey
 	Amount int64
 }

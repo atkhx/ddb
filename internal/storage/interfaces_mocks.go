@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	internal "github.com/atkhx/ddb/internal"
+	key "github.com/atkhx/ddb/pkg/base"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -68,22 +68,22 @@ func (mr *MockStorageMockRecorder) Commit(arg0 interface{}) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockStorage) Get(arg0 internal.Key) (internal.Row, error) {
+func (m *MockStorage) Get(key key.Key) (interface{}, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
-	ret0, _ := ret[0].(internal.Row)
+	ret := m.ctrl.Call(m, "Get", key)
+	ret0, _ := ret[0].(interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockStorageMockRecorder) Get(arg0 interface{}) *gomock.Call {
+func (mr *MockStorageMockRecorder) Get(key interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockStorage)(nil).Get), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockStorage)(nil).Get), key)
 }
 
 // LockKeys mocks base method.
-func (m *MockStorage) LockKeys(txObj TxObj, keys []internal.Key) error {
+func (m *MockStorage) LockKeys(txObj TxObj, keys []key.Key) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LockKeys", txObj, keys)
 	ret0, _ := ret[0].(error)
@@ -111,7 +111,7 @@ func (mr *MockStorageMockRecorder) Rollback(arg0 interface{}) *gomock.Call {
 }
 
 // Set mocks base method.
-func (m *MockStorage) Set(key internal.Key, row internal.Row) error {
+func (m *MockStorage) Set(key key.Key, row interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", key, row)
 	ret0, _ := ret[0].(error)
@@ -125,10 +125,10 @@ func (mr *MockStorageMockRecorder) Set(key, row interface{}) *gomock.Call {
 }
 
 // TxGet mocks base method.
-func (m *MockStorage) TxGet(arg0 TxObj, arg1 internal.Key) (internal.Row, error) {
+func (m *MockStorage) TxGet(arg0 TxObj, arg1 key.Key) (interface{}, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TxGet", arg0, arg1)
-	ret0, _ := ret[0].(internal.Row)
+	ret0, _ := ret[0].(interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -140,10 +140,10 @@ func (mr *MockStorageMockRecorder) TxGet(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // TxGetForUpdate mocks base method.
-func (m *MockStorage) TxGetForUpdate(arg0 TxObj, arg1 internal.Key) (internal.Row, error) {
+func (m *MockStorage) TxGetForUpdate(arg0 TxObj, arg1 key.Key) (interface{}, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TxGetForUpdate", arg0, arg1)
-	ret0, _ := ret[0].(internal.Row)
+	ret0, _ := ret[0].(interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -155,7 +155,7 @@ func (mr *MockStorageMockRecorder) TxGetForUpdate(arg0, arg1 interface{}) *gomoc
 }
 
 // TxSet mocks base method.
-func (m *MockStorage) TxSet(arg0 TxObj, arg1 internal.Key, arg2 internal.Row) error {
+func (m *MockStorage) TxSet(arg0 TxObj, arg1 key.Key, arg2 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TxSet", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -224,10 +224,10 @@ func (mr *MockTxManagerMockRecorder) Commit(arg0 interface{}) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockTxManager) Get(arg0 TxObj, arg1 internal.Key) (internal.Row, error) {
+func (m *MockTxManager) Get(arg0 TxObj, arg1 key.Key) (interface{}, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1)
-	ret0, _ := ret[0].(internal.Row)
+	ret0, _ := ret[0].(interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -253,7 +253,7 @@ func (mr *MockTxManagerMockRecorder) Rollback(arg0 interface{}) *gomock.Call {
 }
 
 // Set mocks base method.
-func (m *MockTxManager) Set(arg0 TxObj, arg1 internal.Key, arg2 internal.Row) error {
+func (m *MockTxManager) Set(arg0 TxObj, arg1 key.Key, arg2 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -433,10 +433,10 @@ func (mr *MockTxRowMockRecorder) GetTxObj() *gomock.Call {
 }
 
 // GetTxRow mocks base method.
-func (m *MockTxRow) GetTxRow() internal.Row {
+func (m *MockTxRow) GetTxRow() interface{} {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTxRow")
-	ret0, _ := ret[0].(internal.Row)
+	ret0, _ := ret[0].(interface{})
 	return ret0
 }
 
@@ -470,7 +470,7 @@ func (m *MockRWTable) EXPECT() *MockRWTableMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockRWTable) Get(arg0 internal.Key) ([]TxRow, error) {
+func (m *MockRWTable) Get(arg0 key.Key) ([]TxRow, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
 	ret0, _ := ret[0].([]TxRow)
@@ -485,7 +485,7 @@ func (mr *MockRWTableMockRecorder) Get(arg0 interface{}) *gomock.Call {
 }
 
 // Set mocks base method.
-func (m *MockRWTable) Set(arg0 TxObj, arg1 internal.Key, arg2 internal.Row) error {
+func (m *MockRWTable) Set(arg0 TxObj, arg1 key.Key, arg2 interface{}) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
@@ -522,10 +522,10 @@ func (m *MockROTable) EXPECT() *MockROTableMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockROTable) Get(arg0 internal.Key) (internal.Row, error) {
+func (m *MockROTable) Get(arg0 key.Key) (interface{}, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
-	ret0, _ := ret[0].(internal.Row)
+	ret0, _ := ret[0].(interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -560,10 +560,10 @@ func (m *MockROTables) EXPECT() *MockROTablesMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockROTables) Get(arg0 internal.Key) (internal.Row, error) {
+func (m *MockROTables) Get(arg0 key.Key) (interface{}, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
-	ret0, _ := ret[0].(internal.Row)
+	ret0, _ := ret[0].(interface{})
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -610,7 +610,7 @@ func (m *MockLocks) EXPECT() *MockLocksMockRecorder {
 }
 
 // LockKey mocks base method.
-func (m *MockLocks) LockKey(txID int64, skipLocked bool, key internal.Key) error {
+func (m *MockLocks) LockKey(txID int64, skipLocked bool, key key.Key) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LockKey", txID, skipLocked, key)
 	ret0, _ := ret[0].(error)
@@ -624,7 +624,7 @@ func (mr *MockLocksMockRecorder) LockKey(txID, skipLocked, key interface{}) *gom
 }
 
 // LockKeys mocks base method.
-func (m *MockLocks) LockKeys(txID int64, skipLocked bool, keys ...internal.Key) error {
+func (m *MockLocks) LockKeys(txID int64, skipLocked bool, keys ...key.Key) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{txID, skipLocked}
 	for _, a := range keys {

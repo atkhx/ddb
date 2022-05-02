@@ -5,7 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/atkhx/ddb/internal"
+	"github.com/atkhx/ddb/pkg/base"
 )
 
 var (
@@ -17,7 +17,7 @@ var (
 func NewTxLocks(lockWaitFactory TxLockWaitFactory) *txLocks {
 	return &txLocks{
 		lockWaitFactory:  lockWaitFactory,
-		locksQueueSingle: map[internal.Key]*txLock{},
+		locksQueueSingle: map[base.Key]*txLock{},
 		locksByTxSingle:  map[int64]*txLock{},
 	}
 }
@@ -27,10 +27,10 @@ type txLocks struct {
 	sync.RWMutex
 	lockWaitFactory  TxLockWaitFactory
 	locksByTxSingle  map[int64]*txLock
-	locksQueueSingle map[internal.Key]*txLock
+	locksQueueSingle map[base.Key]*txLock
 }
 
-func (l *txLocks) LockKey(txID int64, skipLocked bool, key internal.Key) error {
+func (l *txLocks) LockKey(txID int64, skipLocked bool, key base.Key) error {
 	wait, err := l.lockKey(txID, key)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (l *txLocks) LockKey(txID int64, skipLocked bool, key internal.Key) error {
 	return nil
 }
 
-func (l *txLocks) LockKeys(txID int64, skipLocked bool, keys ...internal.Key) error {
+func (l *txLocks) LockKeys(txID int64, skipLocked bool, keys ...base.Key) error {
 	var waitChans []waitChan
 
 	for _, key := range keys {
@@ -78,7 +78,7 @@ func (l *txLocks) LockKeys(txID int64, skipLocked bool, keys ...internal.Key) er
 	return nil
 }
 
-func (l *txLocks) createLock(txID int64, key internal.Key, needWait bool) *txLock {
+func (l *txLocks) createLock(txID int64, key base.Key, needWait bool) *txLock {
 	var wait waitChan
 	if needWait {
 		wait = l.lockWaitFactory.Create()
@@ -96,7 +96,7 @@ func (l *txLocks) createLock(txID int64, key internal.Key, needWait bool) *txLoc
 	return lock
 }
 
-func (l *txLocks) lockKey(txID int64, key internal.Key) (waitChan, error) {
+func (l *txLocks) lockKey(txID int64, key base.Key) (waitChan, error) {
 	l.Lock()
 	defer l.Unlock()
 

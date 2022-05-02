@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/atkhx/ddb/pkg/key"
+	"github.com/atkhx/ddb/pkg/base"
 	"github.com/atkhx/ddb/pkg/walog"
 	"github.com/pkg/errors"
 )
@@ -32,7 +32,7 @@ type storage struct {
 	walogWriter WalogWriter
 }
 
-func (s *storage) Get(k key.Key) (Row, error) {
+func (s *storage) Get(k base.Key) (Row, error) {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -55,7 +55,7 @@ func (s *storage) Get(k key.Key) (Row, error) {
 	return nil, nil
 }
 
-func (s *storage) searchInMemTable(k key.Key) (Row, error) {
+func (s *storage) searchInMemTable(k base.Key) (Row, error) {
 
 	if s.memTable != nil {
 		r, err := s.memTable.Search(k)

@@ -1,12 +1,11 @@
 package rwtablebptree
 
 import (
-	"github.com/atkhx/ddb/internal"
 	"github.com/atkhx/ddb/internal/storage"
 )
 
 type txItem struct {
-	txRow internal.Row
+	txRow interface{}
 	txObj storage.TxObj
 }
 
@@ -14,6 +13,6 @@ func (i *txItem) GetTxObj() storage.TxObj {
 	return i.txObj
 }
 
-func (i *txItem) GetTxRow() internal.Row {
+func (i *txItem) GetTxRow() interface{} {
 	return i.txRow
 }

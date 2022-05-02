@@ -2,17 +2,25 @@
 package bptree
 
 import (
-	"github.com/atkhx/ddb/internal"
+	"github.com/atkhx/ddb/pkg/base"
 )
 
+type ItemProvider interface {
+	GetRootItem() (*item, error)
+
+	LoadItem(ItemID) (*item, error)
+	SaveItem(*item) error
+
+	GetNewBranch() (*item, error)
+	GetNewLeaf() (*item, error)
+}
+
 type Tree interface {
-	Get(internal.Key) internal.Row
-	Set(internal.Key, internal.Row)
+	ScanASC(fn func(row interface{}) bool) error
+	ScanDESC(fn func(row interface{}) bool) error
+
+	Get(base.Key) ([]interface{}, error)
+	Set(base.Key, interface{}) error
 }
 
-type Item interface {
-	Get(internal.Key) internal.Row
-	Set(internal.Key, internal.Row)
-
-	Split() (internal.Key, Item)
-}
+type ItemID interface{}

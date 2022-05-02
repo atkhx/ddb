@@ -1,7 +1,7 @@
-package btree
+package bptree
 
 import (
-	"github.com/atkhx/ddb/internal"
+	"github.com/atkhx/ddb/pkg/base"
 )
 
 type item struct {
@@ -12,8 +12,8 @@ type item struct {
 	rightID ItemID
 	leftID  ItemID
 
-	keys []internal.Key
-	rows []internal.Row
+	keys []base.Key
+	rows []interface{}
 	iids []ItemID
 }
 

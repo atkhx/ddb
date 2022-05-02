@@ -13,7 +13,7 @@ import (
 	"github.com/atkhx/ddb/internal/storage"
 	"github.com/atkhx/ddb/internal/storage/rwtablebptree"
 	testapp_storage "github.com/atkhx/ddb/internal/testapp/storage"
-	"github.com/atkhx/ddb/pkg/btree"
+	"github.com/atkhx/ddb/pkg/bptree"
 )
 
 var users = makeUsers(5000)
@@ -32,7 +32,7 @@ func main() {
 
 	txFactory := storage.NewTxFactory(0)
 	rwTabFactory := rwtablebptree.NewFactory()
-	rwTable := rwTabFactory.Create(100, btree.NewInmemProvider())
+	rwTable := rwTabFactory.Create(100, bptree.NewInmemProvider())
 
 	txLocks := storage.NewTxLocks(storage.NewTxLockWaitFactory())
 	ssTables := storage.NewSSTables()

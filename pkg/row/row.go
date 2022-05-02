@@ -3,10 +3,10 @@ package row
 import (
 	"time"
 
-	"github.com/atkhx/ddb/pkg/key"
+	"github.com/atkhx/ddb/pkg/base"
 )
 
-func New(key key.IntKey, data interface{}) *Row {
+func New(key base.IntKey, data interface{}) *Row {
 	return &Row{
 		key:  key,
 		data: data,
@@ -14,14 +14,14 @@ func New(key key.IntKey, data interface{}) *Row {
 }
 
 type Row struct {
-	key  key.IntKey
+	key  base.IntKey
 	data interface{}
 
 	rowTxTime int64
 	rowDelete bool
 }
 
-func (r *Row) Key() key.Key {
+func (r *Row) Key() base.Key {
 	return r.key
 }
 

@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/atkhx/ddb/internal"
+	"github.com/atkhx/ddb/pkg/base"
 )
 
 func NewStorage(
@@ -36,7 +36,7 @@ func (s *storage) Rollback(txObj TxObj) error {
 	return s.txManager.Rollback(txObj)
 }
 
-func (s *storage) Get(key internal.Key) (internal.Row, error) {
+func (s *storage) Get(key base.Key) (interface{}, error) {
 	txObj := s.Begin()
 	defer func() {
 		_ = s.Rollback(txObj)
@@ -44,7 +44,7 @@ func (s *storage) Get(key internal.Key) (internal.Row, error) {
 	return s.TxGet(txObj, key)
 }
 
-func (s *storage) Set(key internal.Key, row internal.Row) error {
+func (s *storage) Set(key base.Key, row interface{}) error {
 	txObj := s.Begin()
 	if err := s.TxSet(txObj, key, row); err != nil {
 		defer func() {
@@ -55,7 +55,7 @@ func (s *storage) Set(key internal.Key, row internal.Row) error {
 	return s.Commit(txObj)
 }
 
-func (s *storage) TxGet(txObj TxObj, key internal.Key) (internal.Row, error) {
+func (s *storage) TxGet(txObj TxObj, key base.Key) (interface{}, error) {
 	row, err := s.txManager.Get(txObj, key)
 	if err != nil || row != nil {
 		return row, err
@@ -63,14 +63,14 @@ func (s *storage) TxGet(txObj TxObj, key internal.Key) (internal.Row, error) {
 	return s.roTables.Get(key)
 }
 
-func (s *storage) TxSet(txObj TxObj, key internal.Key, row internal.Row) error {
+func (s *storage) TxSet(txObj TxObj, key base.Key, row interface{}) error {
 	if err := s.LockKey(txObj, key); err != nil {
 		return err
 	}
 	return s.txManager.Set(txObj, key, row)
 }
 
-func (s *storage) TxGetForUpdate(txObj TxObj, key internal.Key) (internal.Row, error) {
+func (s *storage) TxGetForUpdate(txObj TxObj, key base.Key) (interface{}, error) {
 	if err := s.LockKey(txObj, key); err != nil {
 		return nil, err
 	}
@@ -83,10 +83,10 @@ func (s *storage) TxGetForUpdate(txObj TxObj, key internal.Key) (internal.Row, e
 	return row, err
 }
 
-func (s *storage) LockKey(txObj TxObj, key internal.Key) error {
+func (s *storage) LockKey(txObj TxObj, key base.Key) error {
 	return s.txLocks.LockKey(txObj.GetID(), txObj.GetIsolation().SkipLocked(), key)
 }
 
-func (s *storage) LockKeys(txObj TxObj, keys []internal.Key) error {
+func (s *storage) LockKeys(txObj TxObj, keys []base.Key) error {
 	return s.txLocks.LockKeys(txObj.GetID(), txObj.GetIsolation().SkipLocked(), keys...)
 }

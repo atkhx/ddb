@@ -4,21 +4,21 @@ package storage
 import (
 	"time"
 
-	"github.com/atkhx/ddb/internal"
+	"github.com/atkhx/ddb/pkg/base"
 )
 
 type Storage interface {
-	Get(internal.Key) (internal.Row, error)
-	Set(key internal.Key, row internal.Row) error
-	TxGet(TxObj, internal.Key) (internal.Row, error)
-	TxSet(TxObj, internal.Key, internal.Row) error
+	Get(key base.Key) (interface{}, error)
+	Set(key base.Key, row interface{}) error
+	TxGet(TxObj, base.Key) (interface{}, error)
+	TxSet(TxObj, base.Key, interface{}) error
 
 	Begin(options ...TxOpt) TxObj
 	Commit(TxObj) error
 	Rollback(TxObj) error
 
-	TxGetForUpdate(TxObj, internal.Key) (internal.Row, error)
-	LockKeys(txObj TxObj, keys []internal.Key) error
+	TxGetForUpdate(TxObj, base.Key) (interface{}, error)
+	LockKeys(txObj TxObj, keys []base.Key) error
 }
 
 type TxManager interface {
@@ -27,8 +27,8 @@ type TxManager interface {
 	Commit(TxObj) error
 	Rollback(TxObj) error
 
-	Get(TxObj, internal.Key) (internal.Row, error)
-	Set(TxObj, internal.Key, internal.Row) error
+	Get(TxObj, base.Key) (interface{}, error)
+	Set(TxObj, base.Key, interface{}) error
 }
 
 type TxFactory interface {
@@ -45,27 +45,27 @@ type TxIsolation interface {
 }
 
 type TxRow interface {
-	GetTxRow() internal.Row
+	GetTxRow() interface{}
 	GetTxObj() TxObj
 }
 
 type RWTable interface {
-	Get(internal.Key) ([]TxRow, error)
-	Set(TxObj, internal.Key, internal.Row) error
+	Get(base.Key) ([]TxRow, error)
+	Set(TxObj, base.Key, interface{}) error
 }
 
 type ROTable interface {
-	Get(internal.Key) (internal.Row, error)
+	Get(base.Key) (interface{}, error)
 }
 
 type ROTables interface {
 	Grow(ROTable)
-	Get(internal.Key) (internal.Row, error)
+	Get(base.Key) (interface{}, error)
 }
 
 type Locks interface {
-	LockKey(txID int64, skipLocked bool, key internal.Key) error
-	LockKeys(txID int64, skipLocked bool, keys ...internal.Key) error
+	LockKey(txID int64, skipLocked bool, key base.Key) error
+	LockKeys(txID int64, skipLocked bool, keys ...base.Key) error
 	Release(txID int64)
 }
 

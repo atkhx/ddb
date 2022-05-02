@@ -7,9 +7,106 @@ package bptree
 import (
 	reflect "reflect"
 
-	internal "github.com/atkhx/ddb/internal"
+	base "github.com/atkhx/ddb/pkg/base"
 	gomock "github.com/golang/mock/gomock"
 )
+
+// MockItemProvider is a mock of ItemProvider interface.
+type MockItemProvider struct {
+	ctrl     *gomock.Controller
+	recorder *MockItemProviderMockRecorder
+}
+
+// MockItemProviderMockRecorder is the mock recorder for MockItemProvider.
+type MockItemProviderMockRecorder struct {
+	mock *MockItemProvider
+}
+
+// NewMockItemProvider creates a new mock instance.
+func NewMockItemProvider(ctrl *gomock.Controller) *MockItemProvider {
+	mock := &MockItemProvider{ctrl: ctrl}
+	mock.recorder = &MockItemProviderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockItemProvider) EXPECT() *MockItemProviderMockRecorder {
+	return m.recorder
+}
+
+// GetNewBranch mocks base method.
+func (m *MockItemProvider) GetNewBranch() (*item, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNewBranch")
+	ret0, _ := ret[0].(*item)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNewBranch indicates an expected call of GetNewBranch.
+func (mr *MockItemProviderMockRecorder) GetNewBranch() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNewBranch", reflect.TypeOf((*MockItemProvider)(nil).GetNewBranch))
+}
+
+// GetNewLeaf mocks base method.
+func (m *MockItemProvider) GetNewLeaf() (*item, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNewLeaf")
+	ret0, _ := ret[0].(*item)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNewLeaf indicates an expected call of GetNewLeaf.
+func (mr *MockItemProviderMockRecorder) GetNewLeaf() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNewLeaf", reflect.TypeOf((*MockItemProvider)(nil).GetNewLeaf))
+}
+
+// GetRootItem mocks base method.
+func (m *MockItemProvider) GetRootItem() (*item, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRootItem")
+	ret0, _ := ret[0].(*item)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRootItem indicates an expected call of GetRootItem.
+func (mr *MockItemProviderMockRecorder) GetRootItem() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRootItem", reflect.TypeOf((*MockItemProvider)(nil).GetRootItem))
+}
+
+// LoadItem mocks base method.
+func (m *MockItemProvider) LoadItem(arg0 ItemID) (*item, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LoadItem", arg0)
+	ret0, _ := ret[0].(*item)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoadItem indicates an expected call of LoadItem.
+func (mr *MockItemProviderMockRecorder) LoadItem(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadItem", reflect.TypeOf((*MockItemProvider)(nil).LoadItem), arg0)
+}
+
+// SaveItem mocks base method.
+func (m *MockItemProvider) SaveItem(arg0 *item) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveItem", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveItem indicates an expected call of SaveItem.
+func (mr *MockItemProviderMockRecorder) SaveItem(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveItem", reflect.TypeOf((*MockItemProvider)(nil).SaveItem), arg0)
+}
 
 // MockTree is a mock of Tree interface.
 type MockTree struct {
@@ -35,11 +132,12 @@ func (m *MockTree) EXPECT() *MockTreeMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockTree) Get(arg0 internal.Key) internal.Row {
+func (m *MockTree) Get(arg0 base.Key) ([]interface{}, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0)
-	ret0, _ := ret[0].(internal.Row)
-	return ret0
+	ret0, _ := ret[0].([]interface{})
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
@@ -48,10 +146,40 @@ func (mr *MockTreeMockRecorder) Get(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTree)(nil).Get), arg0)
 }
 
-// Set mocks base method.
-func (m *MockTree) Set(arg0 internal.Key, arg1 internal.Row) {
+// ScanASC mocks base method.
+func (m *MockTree) ScanASC(fn func(interface{}) bool) error {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Set", arg0, arg1)
+	ret := m.ctrl.Call(m, "ScanASC", fn)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ScanASC indicates an expected call of ScanASC.
+func (mr *MockTreeMockRecorder) ScanASC(fn interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanASC", reflect.TypeOf((*MockTree)(nil).ScanASC), fn)
+}
+
+// ScanDESC mocks base method.
+func (m *MockTree) ScanDESC(fn func(interface{}) bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ScanDESC", fn)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ScanDESC indicates an expected call of ScanDESC.
+func (mr *MockTreeMockRecorder) ScanDESC(fn interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanDESC", reflect.TypeOf((*MockTree)(nil).ScanDESC), fn)
+}
+
+// Set mocks base method.
+func (m *MockTree) Set(arg0 base.Key, arg1 interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Set", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // Set indicates an expected call of Set.
@@ -60,66 +188,25 @@ func (mr *MockTreeMockRecorder) Set(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockTree)(nil).Set), arg0, arg1)
 }
 
-// MockItem is a mock of Item interface.
-type MockItem struct {
+// MockItemID is a mock of ItemID interface.
+type MockItemID struct {
 	ctrl     *gomock.Controller
-	recorder *MockItemMockRecorder
+	recorder *MockItemIDMockRecorder
 }
 
-// MockItemMockRecorder is the mock recorder for MockItem.
-type MockItemMockRecorder struct {
-	mock *MockItem
+// MockItemIDMockRecorder is the mock recorder for MockItemID.
+type MockItemIDMockRecorder struct {
+	mock *MockItemID
 }
 
-// NewMockItem creates a new mock instance.
-func NewMockItem(ctrl *gomock.Controller) *MockItem {
-	mock := &MockItem{ctrl: ctrl}
-	mock.recorder = &MockItemMockRecorder{mock}
+// NewMockItemID creates a new mock instance.
+func NewMockItemID(ctrl *gomock.Controller) *MockItemID {
+	mock := &MockItemID{ctrl: ctrl}
+	mock.recorder = &MockItemIDMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockItem) EXPECT() *MockItemMockRecorder {
+func (m *MockItemID) EXPECT() *MockItemIDMockRecorder {
 	return m.recorder
-}
-
-// Get mocks base method.
-func (m *MockItem) Get(arg0 internal.Key) internal.Row {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
-	ret0, _ := ret[0].(internal.Row)
-	return ret0
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockItemMockRecorder) Get(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockItem)(nil).Get), arg0)
-}
-
-// Set mocks base method.
-func (m *MockItem) Set(arg0 internal.Key, arg1 internal.Row) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Set", arg0, arg1)
-}
-
-// Set indicates an expected call of Set.
-func (mr *MockItemMockRecorder) Set(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockItem)(nil).Set), arg0, arg1)
-}
-
-// Split mocks base method.
-func (m *MockItem) Split() (internal.Key, Item) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Split")
-	ret0, _ := ret[0].(internal.Key)
-	ret1, _ := ret[1].(Item)
-	return ret0, ret1
-}
-
-// Split indicates an expected call of Split.
-func (mr *MockItemMockRecorder) Split() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Split", reflect.TypeOf((*MockItem)(nil).Split))
 }

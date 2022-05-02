@@ -1,13 +1,15 @@
 package storage
 
-import "github.com/atkhx/ddb/internal"
+import (
+	"github.com/atkhx/ddb/pkg/base"
+)
 
 type waitChan chan bool
 
 func NewTxLock(
 	lockId int64,
 	txID int64,
-	key internal.Key,
+	key base.Key,
 	firstInTx *txLock,
 	wait waitChan,
 ) *txLock {
@@ -35,7 +37,7 @@ type txLock struct {
 	lockId int64
 	wait   waitChan
 	txID   int64
-	key    internal.Key
+	key    base.Key
 
 	prevInKeyQueue *txLock
 	nextInKeyQueue *txLock

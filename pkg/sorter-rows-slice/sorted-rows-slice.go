@@ -4,7 +4,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/atkhx/ddb/pkg/key"
+	"github.com/atkhx/ddb/pkg/base"
 	"github.com/atkhx/ddb/pkg/lsm/storage"
 )
 
@@ -34,7 +34,7 @@ func (r *sortedRowsSlice) Insert(row storage.Row) error {
 	r.rows = append(r.rows, row)
 
 	sort.Slice(r.rows, func(i, j int) bool {
-		return r.rows[i].Key().Less(r.rows[j].Key())
+		return r.rows[i].Key().CompareWith(r.rows[j].Key()).IsLess()
 	})
 
 	return nil
@@ -54,16 +54,16 @@ func (r *sortedRowsSlice) Scan(fn func(storage.Row) (stop bool, err error)) erro
 	return nil
 }
 
-func (r *sortedRowsSlice) SearchIndex(key key.Key) (int, error) {
+func (r *sortedRowsSlice) SearchIndex(key base.Key) (int, error) {
 	for idx, rr := range r.rows {
-		if rr.Key().Equal(key) {
+		if rr.Key().CompareWith(key).IsEqual() {
 			return idx, nil
 		}
 	}
 	return -1, nil
 }
 
-func (r *sortedRowsSlice) Search(key key.Key) (storage.Row, error) {
+func (r *sortedRowsSlice) Search(key base.Key) (storage.Row, error) {
 	idx, err := r.SearchIndex(key)
 	if err != nil {
 		return nil, err

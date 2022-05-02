@@ -3,7 +3,7 @@ package row
 import (
 	"encoding/json"
 
-	"github.com/atkhx/ddb/pkg/key"
+	"github.com/atkhx/ddb/pkg/base"
 	"github.com/atkhx/ddb/pkg/lsm/storage"
 	"github.com/pkg/errors"
 )
@@ -19,7 +19,7 @@ func (*unSerializer) RowFromBytes(b []byte) (storage.Row, error) {
 }
 
 type serializableRow struct {
-	Key  key.IntKey
+	Key  base.IntKey
 	Data interface{}
 
 	RowTxTime int64

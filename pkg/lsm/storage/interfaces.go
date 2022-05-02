@@ -1,12 +1,12 @@
 package storage
 
 import (
-	"github.com/atkhx/ddb/pkg/key"
+	"github.com/atkhx/ddb/pkg/base"
 	"github.com/atkhx/ddb/pkg/walog"
 )
 
 type Row interface {
-	Key() key.Key
+	Key() base.Key
 	Data() interface{}
 
 	IsDeleted() bool
@@ -21,13 +21,13 @@ type WalogWriter interface {
 
 type MemTable interface {
 	Scan(func(Row) (stop bool, err error)) error
-	Search(key.Key) (Row, error)
+	Search(base.Key) (Row, error)
 	Insert(Row) error
 	Reset()
 }
 
 type SSTable interface {
-	Search(k key.Key) (Row, error)
+	Search(k base.Key) (Row, error)
 	Close() error
 }
 

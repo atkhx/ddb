@@ -3,7 +3,7 @@ package storage
 import (
 	"sync"
 
-	"github.com/atkhx/ddb/internal"
+	"github.com/atkhx/ddb/pkg/base"
 )
 
 func NewSSTables() *ssTables {
@@ -35,7 +35,7 @@ func (tt *ssTables) Iterate(fn func(ROTable) bool) {
 	return
 }
 
-func (tt *ssTables) Get(key internal.Key) (row internal.Row, err error) {
+func (tt *ssTables) Get(key base.Key) (row interface{}, err error) {
 	tt.Iterate(func(table ROTable) bool {
 		row, err = table.Get(key)
 		return row != nil || err != nil

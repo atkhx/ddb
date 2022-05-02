@@ -1,4 +1,4 @@
-package key
+package base
 
 type CompareResult int
 

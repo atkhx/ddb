@@ -3,7 +3,7 @@ package sstable
 import (
 	"io"
 
-	"github.com/atkhx/ddb/pkg/key"
+	"github.com/atkhx/ddb/pkg/base"
 	"github.com/atkhx/ddb/pkg/lsm/storage"
 	"github.com/pkg/errors"
 )
@@ -16,7 +16,7 @@ type SSReader interface {
 }
 
 type SSIndex interface {
-	Search(key key.Key) (int64, error)
+	Search(key base.Key) (int64, error)
 }
 
 func NewSSTable(reader SSReader, index SSIndex) *ssTable {
@@ -28,7 +28,7 @@ type ssTable struct {
 	index  SSIndex
 }
 
-func (s *ssTable) Search(k key.Key) (storage.Row, error) {
+func (s *ssTable) Search(k base.Key) (storage.Row, error) {
 	// search by index
 	if s.index != nil {
 		if p, err := s.index.Search(k); err != nil {
@@ -61,7 +61,7 @@ func (s *ssTable) Search(k key.Key) (storage.Row, error) {
 			break
 		}
 
-		if r.Key().Equal(k) {
+		if r.Key().CompareWith(k).IsEqual() {
 			return r, nil
 		}
 	}

@@ -1,4 +1,4 @@
-package btree
+package bptree
 
 import "github.com/pkg/errors"
 

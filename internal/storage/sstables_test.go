@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/atkhx/ddb/internal/keys"
+	"github.com/atkhx/ddb/pkg/base/keys"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )

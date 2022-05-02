@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/atkhx/ddb/pkg/key"
+	"github.com/atkhx/ddb/pkg/base"
 	"github.com/atkhx/ddb/pkg/lsm/filemanager"
 	"github.com/atkhx/ddb/pkg/lsm/flusher"
 	ssConstructor "github.com/atkhx/ddb/pkg/lsm/sstable/constructor"
@@ -31,9 +31,9 @@ const (
 )
 
 type Tree interface {
-	Search(k key.Key) (storage.Row, error)
+	Search(k base.Key) (storage.Row, error)
 	Insert(r storage.Row) error
-	Delete(k key.Key) error
+	Delete(k base.Key) error
 }
 
 var (
@@ -105,7 +105,7 @@ func writeRecords(lsmTree Tree) {
 
 	for i := 1; i <= 50; i++ {
 		//k := rand.Intn(100)
-		k := key.IntKey(i)
+		k := base.IntKey(i)
 		r := row.New(k, fmt.Sprintf("row data for index %d", k))
 
 		if err := lsmTree.Insert(r); err != nil {
@@ -113,15 +113,15 @@ func writeRecords(lsmTree Tree) {
 		}
 	}
 
-	if err := lsmTree.Delete(key.IntKey(45)); err != nil {
+	if err := lsmTree.Delete(base.IntKey(45)); err != nil {
 		log.Fatalln(err)
 	}
 
-	if err := lsmTree.Delete(key.IntKey(31)); err != nil {
+	if err := lsmTree.Delete(base.IntKey(31)); err != nil {
 		log.Fatalln(err)
 	}
 
-	if err := lsmTree.Insert(row.New(key.IntKey(45), fmt.Sprintf("new row data for index %d", 45))); err != nil {
+	if err := lsmTree.Insert(row.New(base.IntKey(45), fmt.Sprintf("new row data for index %d", 45))); err != nil {
 		log.Fatalln(err)
 	}
 }
@@ -131,7 +131,7 @@ func readRecords(lsmTree Tree) {
 		//k := rand.Intn(100)
 		k := i
 
-		r, err := lsmTree.Search(key.IntKey(k))
+		r, err := lsmTree.Search(base.IntKey(k))
 		if err != nil {
 			log.Fatalln(err)
 		}
