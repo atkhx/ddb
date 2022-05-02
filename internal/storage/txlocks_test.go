@@ -3,7 +3,7 @@ package storage
 import (
 	"testing"
 
-	"github.com/atkhx/ddb/pkg/base/keys"
+	"github.com/atkhx/ddb/pkg/base"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,9 +16,9 @@ func TestTxLocks_InitLock(t *testing.T) {
 	tx2 := &txObj{txID: 2}
 	tx3 := &txObj{txID: 3}
 
-	key1 := keys.IntKey(1)
-	key2 := keys.IntKey(2)
-	key3 := keys.IntKey(3)
+	key1 := base.IntKey(1)
+	key2 := base.IntKey(2)
+	key3 := base.IntKey(3)
 
 	waitFactory := NewMockTxLockWaitFactory(ctrl)
 
@@ -114,8 +114,8 @@ func TestTxLocks_Release(t *testing.T) {
 	tx2 := &txObj{txID: 2}
 	tx3 := &txObj{txID: 3}
 
-	key1 := keys.IntKey(1)
-	key2 := keys.IntKey(2)
+	key1 := base.IntKey(1)
+	key2 := base.IntKey(2)
 
 	waitFactory := NewMockTxLockWaitFactory(ctrl)
 

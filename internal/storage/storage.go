@@ -5,19 +5,16 @@ import (
 )
 
 func NewStorage(
-	roTables ROTables,
 	txManager TxManager,
 	txLocks Locks,
 ) *storage {
 	return &storage{
-		roTables:  roTables,
 		txManager: txManager,
 		txLocks:   txLocks,
 	}
 }
 
 type storage struct {
-	roTables  ROTables
 	txManager TxManager
 	txLocks   Locks
 }
@@ -56,11 +53,7 @@ func (s *storage) Set(key base.Key, row interface{}) error {
 }
 
 func (s *storage) TxGet(txObj TxObj, key base.Key) (interface{}, error) {
-	row, err := s.txManager.Get(txObj, key)
-	if err != nil || row != nil {
-		return row, err
-	}
-	return s.roTables.Get(key)
+	return s.txManager.Get(txObj, key)
 }
 
 func (s *storage) TxSet(txObj TxObj, key base.Key, row interface{}) error {

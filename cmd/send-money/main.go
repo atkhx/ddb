@@ -35,17 +35,13 @@ func main() {
 	rwTable := rwTabFactory.Create(100, bptree.NewInmemProvider())
 
 	txLocks := storage.NewTxLocks(storage.NewTxLockWaitFactory())
-	ssTables := storage.NewSSTables()
-	txTables := storage.NewTxManager(txFactory, rwTable)
+	txManager := storage.NewTxManager(txFactory, rwTable)
 
-	db := storage.NewStorage(ssTables, txTables, txLocks)
+	db := storage.NewStorage(txManager, txLocks)
 
 	appstorarge := testapp_storage.New(db)
 	appstorarge.GiveFirstAmount(users)
-	//appstorarge.GiveFirstAmount(users)
-
 	appstorarge.CheckTotalAmount(users)
-	//return
 
 	wg := sync.WaitGroup{}
 	rand.Seed(time.Now().UnixNano())

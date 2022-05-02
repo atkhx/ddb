@@ -54,15 +54,6 @@ type RWTable interface {
 	Set(TxObj, base.Key, interface{}) error
 }
 
-type ROTable interface {
-	Get(base.Key) (interface{}, error)
-}
-
-type ROTables interface {
-	Grow(ROTable)
-	Get(base.Key) (interface{}, error)
-}
-
 type Locks interface {
 	LockKey(txID int64, skipLocked bool, key base.Key) error
 	LockKeys(txID int64, skipLocked bool, keys ...base.Key) error
