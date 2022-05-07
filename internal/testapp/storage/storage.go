@@ -57,12 +57,10 @@ func (s *storage) GetAccountForUpdate(tx TX, user string) (model.Account, error)
 
 func (s *storage) SendMoney(fromUser, toUser string, amount int64) {
 	tx := s.db.Begin()
-	//tx := db.Begin(storage.ReadCommitted())
-	//tx := db.Begin(storage.RepeatableRead())
+
 	var err error
 	defer func() {
 		if err != nil {
-			//log.Println("SendMoney failed", err)
 			if err := s.db.Rollback(tx); err != nil {
 				log.Println("rollback transaction", tx, err)
 			}
@@ -72,10 +70,6 @@ func (s *storage) SendMoney(fromUser, toUser string, amount int64) {
 			}
 		}
 	}()
-
-	//if err = db.LockKeys(tx, []internal.Key{getAccountId(fromUser), getAccountId(toUser)}); err != nil {
-	//	return
-	//}
 
 	accountFrom, err := s.GetAccountForUpdate(tx, fromUser)
 	if err != nil {
