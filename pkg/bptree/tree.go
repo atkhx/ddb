@@ -163,25 +163,20 @@ func (t *tree) getLeafASC(key base.Key) (*item, error) {
 
 func (t *tree) searchKeyInBranchASC(branch *item, key base.Key) int {
 	for i := 0; i < len(branch.keys); i++ {
-		if branch.keys[i].CompareWith(key).IsGreater() {
-			return i
+		if branch.keys[i].CompareWith(key).IsLess() {
+			continue
 		}
-
-		if branch.keys[i] == key {
-			return i
-		}
+		return i
 	}
 	return len(branch.keys)
 }
 
 func (t *tree) searchKeyInLeafASC(leaf *item, key base.Key) (int, bool) {
 	for i := 0; i < len(leaf.keys); i++ {
-		if leaf.keys[i] == key {
-			return i, true
-		}
-
-		if leaf.keys[i].CompareWith(key).IsGreater() {
-			return i, false
+		if cmp := leaf.keys[i].CompareWith(key); cmp.IsLess() {
+			continue
+		} else {
+			return i, cmp.IsEqual()
 		}
 	}
 	return len(leaf.keys), false
