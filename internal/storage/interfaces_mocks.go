@@ -113,7 +113,7 @@ func (mr *MockStorageMockRecorder) Rollback(arg0 interface{}) *gomock.Call {
 // Set mocks base method.
 func (m *MockStorage) Set(key base.Key, row interface{}) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", key, row)
+	ret := m.ctrl.Call(m, "Add", key, row)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -121,7 +121,7 @@ func (m *MockStorage) Set(key base.Key, row interface{}) error {
 // Set indicates an expected call of Set.
 func (mr *MockStorageMockRecorder) Set(key, row interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockStorage)(nil).Set), key, row)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockStorage)(nil).Set), key, row)
 }
 
 // TxGet mocks base method.
@@ -255,7 +255,7 @@ func (mr *MockTxManagerMockRecorder) Rollback(arg0 interface{}) *gomock.Call {
 // Set mocks base method.
 func (m *MockTxManager) Set(arg0 TxObj, arg1 base.Key, arg2 interface{}) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Add", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -263,7 +263,7 @@ func (m *MockTxManager) Set(arg0 TxObj, arg1 base.Key, arg2 interface{}) error {
 // Set indicates an expected call of Set.
 func (mr *MockTxManagerMockRecorder) Set(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockTxManager)(nil).Set), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockTxManager)(nil).Set), arg0, arg1, arg2)
 }
 
 // MockTxFactory is a mock of TxFactory interface.
@@ -487,7 +487,7 @@ func (mr *MockRWTableMockRecorder) Get(arg0 interface{}) *gomock.Call {
 // Set mocks base method.
 func (m *MockRWTable) Set(arg0 TxObj, arg1 base.Key, arg2 interface{}) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Add", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -495,7 +495,7 @@ func (m *MockRWTable) Set(arg0 TxObj, arg1 base.Key, arg2 interface{}) error {
 // Set indicates an expected call of Set.
 func (mr *MockRWTableMockRecorder) Set(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockRWTable)(nil).Set), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockRWTable)(nil).Set), arg0, arg1, arg2)
 }
 
 // MockLocks is a mock of Locks interface.

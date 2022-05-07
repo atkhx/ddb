@@ -187,15 +187,14 @@ func (t *tree) searchKeyInLeafASC(leaf *item, key base.Key) (int, bool) {
 	return len(leaf.keys), false
 }
 
-func (t *tree) getPathForInsert(key base.Key) (searchPath searchPath, err error) {
-	var idx int
-
+func (t *tree) getPathForAdd(key base.Key) (searchPath searchPath, err error) {
 	item, err := t.provider.GetRootItem()
 	if err != nil {
 		return nil, err
 	}
 
 	for item != nil {
+		var idx int
 		for idx = 0; idx < len(item.keys); idx++ {
 			if item.keys[idx].CompareWith(key).IsGreater() {
 				break
@@ -219,14 +218,14 @@ func (t *tree) getPathForInsert(key base.Key) (searchPath searchPath, err error)
 	return
 }
 
-func (t *tree) Set(key base.Key, row interface{}) error {
+func (t *tree) Add(key base.Key, row interface{}) error {
 	t.Lock()
 	defer t.Unlock()
 
 	var splitKey base.Key
 	var newItem *item
 
-	searchPath, err := t.getPathForInsert(key)
+	searchPath, err := t.getPathForAdd(key)
 	if err != nil {
 		return err
 	}

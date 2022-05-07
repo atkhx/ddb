@@ -20,7 +20,7 @@ type Tree interface {
 	ScanDESC(fn func(row interface{}) bool) error
 
 	Get(base.Key) ([]interface{}, error)
-	Set(base.Key, interface{}) error
+	Add(base.Key, interface{}) error
 }
 
 type ItemID interface{}

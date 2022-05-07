@@ -12,7 +12,7 @@ func TestTree_Get(t *testing.T) {
 
 }
 
-func TestTree_Set(t *testing.T) {
+func TestTree_Add(t *testing.T) {
 
 }
 

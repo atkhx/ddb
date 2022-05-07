@@ -34,7 +34,7 @@ func (t *table) Get(key base.Key) ([]storage.TxRow, error) {
 }
 
 func (t *table) Set(txObj storage.TxObj, key base.Key, row interface{}) error {
-	return t.tree.Set(key, &txItem{
+	return t.tree.Add(key, &txItem{
 		txRow: row,
 		txObj: txObj,
 	})

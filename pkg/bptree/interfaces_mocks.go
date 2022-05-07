@@ -177,7 +177,7 @@ func (mr *MockTreeMockRecorder) ScanDESC(fn interface{}) *gomock.Call {
 // Set mocks base method.
 func (m *MockTree) Set(arg0 base.Key, arg1 interface{}) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", arg0, arg1)
+	ret := m.ctrl.Call(m, "Add", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
@@ -185,7 +185,7 @@ func (m *MockTree) Set(arg0 base.Key, arg1 interface{}) error {
 // Set indicates an expected call of Set.
 func (mr *MockTreeMockRecorder) Set(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockTree)(nil).Set), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockTree)(nil).Set), arg0, arg1)
 }
 
 // MockItemID is a mock of ItemID interface.
