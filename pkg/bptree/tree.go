@@ -174,15 +174,6 @@ func (t *tree) searchKeyInBranchASC(branch *item, key base.Key) int {
 	return len(branch.keys)
 }
 
-func (t *tree) searchKeyInBranchDESC(branch *item, key base.Key) int {
-	for i := 0; i < len(branch.keys); i++ {
-		if branch.keys[i].CompareWith(key).IsGreater() {
-			return i
-		}
-	}
-	return len(branch.keys)
-}
-
 func (t *tree) searchKeyInLeafASC(leaf *item, key base.Key) (int, bool) {
 	for i := 0; i < len(leaf.keys); i++ {
 		if leaf.keys[i] == key {
@@ -196,15 +187,6 @@ func (t *tree) searchKeyInLeafASC(leaf *item, key base.Key) (int, bool) {
 	return len(leaf.keys), false
 }
 
-func (t *tree) searchKeyInLeafDESC(leaf *item, key base.Key) int {
-	for i := 0; i < len(leaf.keys); i++ {
-		if leaf.keys[i].CompareWith(key).IsGreater() {
-			return i
-		}
-	}
-	return len(leaf.keys)
-}
-
 func (t *tree) getPathForInsert(key base.Key) (searchPath searchPath, err error) {
 	var idx int
 
@@ -214,10 +196,10 @@ func (t *tree) getPathForInsert(key base.Key) (searchPath searchPath, err error)
 	}
 
 	for item != nil {
-		if item.isLeaf {
-			idx = t.searchKeyInLeafDESC(item, key)
-		} else {
-			idx = t.searchKeyInBranchDESC(item, key)
+		for idx = 0; idx < len(item.keys); idx++ {
+			if item.keys[idx].CompareWith(key).IsGreater() {
+				break
+			}
 		}
 
 		searchPath = append(searchPath, searchPathItem{
@@ -241,61 +223,52 @@ func (t *tree) Set(key base.Key, row interface{}) error {
 	t.Lock()
 	defer t.Unlock()
 
+	var splitKey base.Key
+	var newItem *item
+
 	searchPath, err := t.getPathForInsert(key)
 	if err != nil {
 		return err
 	}
 
-	item := searchPath[len(searchPath)-1].item
-	kidx := searchPath[len(searchPath)-1].kidx
+	for {
+		item := searchPath[len(searchPath)-1].item
+		kidx := searchPath[len(searchPath)-1].kidx
 
-	searchPath = searchPath[:len(searchPath)-1]
+		searchPath = searchPath[:len(searchPath)-1]
+		itemIsRoot := item.isRoot
 
-	modifiedRoot := item.isRoot
+		if item.isLeaf {
+			t.insertRowInLeaf(item, kidx, key, row)
+		} else {
+			t.growBranch(item, kidx, splitKey, newItem)
+		}
 
-	t.insertRowInLeaf(item, kidx, key, row)
+		splitKey, newItem, err = t.splitItem(item)
+		if err != nil {
+			return err
+		}
 
-	if err = t.provider.SaveItem(item); err != nil {
-		return err
-	}
+		if err = t.provider.SaveItem(item); err != nil {
+			return err
+		}
 
-	splitKey, newItem, err := t.splitLeaf(item)
-	if err != nil {
-		return err
-	}
+		if newItem == nil {
+			break
+		}
 
-	for newItem != nil {
 		if err = t.provider.SaveItem(newItem); err != nil {
 			return err
 		}
 
-		if modifiedRoot {
+		if itemIsRoot {
 			if newRoot, err := t.growRoot(splitKey, item, newItem); err != nil {
 				return err
 			} else {
 				return t.provider.SaveItem(newRoot)
 			}
 		}
-
-		item = searchPath[len(searchPath)-1].item
-		kidx = searchPath[len(searchPath)-1].kidx
-
-		searchPath = searchPath[:len(searchPath)-1]
-
-		modifiedRoot = item.isRoot
-
-		t.growBranch(item, kidx, splitKey, newItem)
-
-		splitKey, newItem, err = t.splitBranch(item)
-		if err != nil {
-			return err
-		}
-
-		if err := t.provider.SaveItem(item); err != nil {
-			return err
-		}
 	}
-
 	return nil
 }
 
@@ -318,6 +291,13 @@ func (t *tree) insertRowInLeaf(leaf *item, idx int, nkey base.Key, nrow interfac
 
 	leaf.keys = keys
 	leaf.rows = rows
+}
+
+func (t *tree) splitItem(item *item) (base.Key, *item, error) {
+	if item.isLeaf {
+		return t.splitLeaf(item)
+	}
+	return t.splitBranch(item)
 }
 
 func (t *tree) splitLeaf(leaf *item) (base.Key, *item, error) {

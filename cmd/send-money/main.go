@@ -47,7 +47,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	var timeAvg int64
 	var timeAll time.Duration
-	txCount := 300_000
+	txCount := 30_000
 
 	for i := 0; i < txCount; i++ {
 		userFrom := users[rand.Intn(len(users))]
