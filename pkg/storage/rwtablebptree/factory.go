@@ -1,8 +1,8 @@
 package rwtablebptree
 
 import (
-	"github.com/atkhx/ddb/internal/storage"
 	"github.com/atkhx/ddb/pkg/bptree"
+	"github.com/atkhx/ddb/pkg/storage"
 )
 
 func NewFactory() *factory {

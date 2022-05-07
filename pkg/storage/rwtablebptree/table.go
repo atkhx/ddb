@@ -3,9 +3,9 @@ package rwtablebptree
 import (
 	"sort"
 
-	"github.com/atkhx/ddb/internal/storage"
 	"github.com/atkhx/ddb/pkg/base"
 	"github.com/atkhx/ddb/pkg/bptree"
+	"github.com/atkhx/ddb/pkg/storage"
 )
 
 func NewTable(capacity int, provider bptree.ItemProvider) *table {

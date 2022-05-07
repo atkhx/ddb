@@ -1,7 +1,7 @@
 package rwtablebptree
 
 import (
-	"github.com/atkhx/ddb/internal/storage"
+	"github.com/atkhx/ddb/pkg/storage"
 )
 
 type txItem struct {

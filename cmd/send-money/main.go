@@ -10,10 +10,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/atkhx/ddb/internal/storage"
-	"github.com/atkhx/ddb/internal/storage/rwtablebptree"
 	testapp_storage "github.com/atkhx/ddb/internal/testapp/storage"
 	"github.com/atkhx/ddb/pkg/bptree"
+	"github.com/atkhx/ddb/pkg/storage"
+	"github.com/atkhx/ddb/pkg/storage/rwtablebptree"
 )
 
 var users = makeUsers(5000)
